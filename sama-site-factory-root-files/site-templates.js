@@ -7,15 +7,15 @@
   window.SAMA_SITE_TEMPLATES = [
     {
       id: "distribution", number: "01", name: "Commerce & distribution", sector: "Commerce", glyph: "CD", layout: "catalog",
-      description: "Catalogue, panier, offres et commandes.", demoBrand: "SAMA-PACK", location: "Dakar, Sénégal",
+      description: "Catalogue, panier, offres et commandes.", demoBrand: "BOUTIQUE TERANGA", location: "Dakar, Sénégal",
       eyebrow: "SIMPLE. PRATIQUE. CHEZ VOUS.", headline: "Les essentiels du quotidien, au bon endroit.", tagline: "Des produits utiles, des commandes simples.",
       body: "Retrouvez une sélection de produits pour la maison et les professionnels, avec un parcours de commande clair.", cta: "Explorer le catalogue", secondaryCta: "Nos services", nav: ["Catalogue", "Promotions", "Professionnels", "Contact"],
       color: "#17633d", soft: "#e9f5ec", dark: "#153c2c", heroImage: img("photo-1585421514738-01798e348b17"),
       features: ["Catalogue organisé", "Commandes en ligne", "Livraison configurable"],
       cards: [
-        { title: "Pack Grand Ménage", type: "Pack best-seller", price: "14 500 F", image: img("photo-1581578731548-c64695cc6952") },
-        { title: "Hygiène Bébé", type: "Essentiels famille", price: "18 500 F", image: img("photo-1604917877934-07d8d248d396") },
-        { title: "Cuisine Net", type: "Entretien de la cuisine", price: "8 500 F", image: img("photo-1556911220-bff31c812dba") }
+        { title: "Équipement maison", type: "Sélection populaire", price: "14 500 F", image: img("photo-1581578731548-c64695cc6952") },
+        { title: "Accessoires pratiques", type: "Essentiels du quotidien", price: "18 500 F", image: img("photo-1604917877934-07d8d248d396") },
+        { title: "Rangement cuisine", type: "Maison & quotidien", price: "8 500 F", image: img("photo-1556911220-bff31c812dba") }
       ]
     },
     {

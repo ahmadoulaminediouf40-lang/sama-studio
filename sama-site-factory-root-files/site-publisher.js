@@ -2,9 +2,9 @@
 (function () {
   "use strict";
   var templates = Array.isArray(window.SAMA_SITE_TEMPLATES) ? window.SAMA_SITE_TEMPLATES : [];
-  var state = { templateId: "", products: [], productCounter: 0 };
+  var state = { templateId: "", products: [], productCounter: 0, pages: [], media: [] };
   var toast = document.getElementById("studioToast");
-  var productEditor, releasePanel, extra = {};
+  var productEditor, releasePanel, extra = {}, pageEditor, mediaInput, mediaGrid, revisionList;
   function $(selector, scope) { return (scope || document).querySelector(selector); }
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -95,6 +95,16 @@
       '<p class="release-help">Remplacez les exemples par vos produits réels. Pour chaque article, renseignez un nom, un prix, une image et une description claire. La capacité du catalogue dépendra de votre formule.</p>' +
       '<div id="siteProductsEditor" class="site-products-editor"></div>' +
       '<button id="addSiteProductBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter un produit</button></details>' +
+      '<details class="editor-section" open><summary><span>Pages et navigation</span><small id="customPageCount">0 page</small></summary>' +
+      '<p class="release-help">Ajoutez des pages ou sections navigables : présentation, services, FAQ, livraison ou conditions.</p>' +
+      '<div id="sitePagesEditor" class="site-pages-editor"></div><button id="addSitePageBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter une page</button></details>' +
+      '<details class="editor-section"><summary><span>Médiathèque</span><small id="mediaCount">0 image</small></summary>' +
+      '<p class="release-help">Importez des images et réutilisez-les comme logo, bannière ou image du premier produit. PNG, JPEG, WebP ou GIF, 150 Ko maximum par image.</p>' +
+      '<label class="media-upload-label">Importer des images<input id="mediaUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>' +
+      '<div id="siteMediaGrid" class="site-media-grid"></div></details>' +
+      '<details class="editor-section"><summary><span>Versions et restauration</span><small id="revisionCount">0 version</small></summary>' +
+      '<p class="release-help">Créez un point de restauration avant une modification importante. Les versions sont conservées dans ce navigateur.</p>' +
+      '<button id="createRevisionBtn" class="btn btn-secondary btn-full" type="button">Créer une version maintenant</button><div id="siteRevisionList" class="site-revision-list"></div></details>' +
       '<div class="release-export-actions"><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
       '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Voir mon aperçu</button></div>' +
       '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>' +
@@ -102,6 +112,7 @@
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
     releasePanel = panel; productEditor = $("#siteProductsEditor", panel);
+    pageEditor = $("#sitePagesEditor", panel); mediaInput = $("#mediaUploadInput", panel); mediaGrid = $("#siteMediaGrid", panel); revisionList = $("#siteRevisionList", panel);
   }
   function productInput(labelText, key, value, index, placeholder) {
     var label = create("label", "product-field", labelText), input;
@@ -165,6 +176,180 @@
       bottom.appendChild(action); content.appendChild(bottom);
       card.appendChild(imageWrap); card.appendChild(content); grid.appendChild(card);
     });
+    var heroImage = preview && $(".store-preview .hero-image", preview);
+    var customHero = safeImageUrl(fieldValue("heroImageUrl"));
+    if (heroImage && customHero) heroImage.src = customHero;
+    var siteRoot = preview && $(".store-main", preview);
+    if (siteRoot) {
+      var oldPages = $(".store-preview-pages", siteRoot); if (oldPages) oldPages.remove();
+      var visiblePages = state.pages.filter(function (page) { return page.visible !== false && String(page.title || "").trim(); });
+      if (visiblePages.length) {
+        var section = create("section", "store-preview-pages"), heading = create("h2", "", "Pages personnalisées");
+        section.appendChild(heading);
+        visiblePages.forEach(function (page) {
+          var article = create("article", "store-preview-page"), title = create("h3", "", page.title);
+          article.id = "preview-" + safePageSlug(page.slug || page.title); article.appendChild(title);
+          if (page.description) article.appendChild(create("p", "store-preview-page-description", page.description));
+          String(page.content || "").split(/\n+/).filter(Boolean).forEach(function (paragraph) { article.appendChild(create("p", "", paragraph)); });
+          section.appendChild(article);
+        });
+        siteRoot.appendChild(section);
+      }
+    }
+  }
+  function safePageSlug(value) {
+    return slug(value).slice(0, 55) || "page";
+  }
+  function pageInput(labelText, key, value, index, multiline) {
+    var label = create("label", "product-field", labelText), input;
+    if (multiline) { input = create("textarea"); input.rows = 4; input.maxLength = 5000; }
+    else { input = create("input"); input.type = "text"; input.maxLength = key === "title" ? 90 : 170; }
+    input.value = value || "";
+    input.dataset.pageIndex = String(index); input.dataset.pageKey = key;
+    input.addEventListener("input", function () {
+      var page = state.pages[Number(input.dataset.pageIndex)];
+      if (!page) return;
+      page[input.dataset.pageKey] = input.value;
+      if (key === "title") page.slug = safePageSlug(input.value);
+      syncPreviewProducts(); persistReleaseDraft();
+    });
+    label.appendChild(input); return label;
+  }
+  function renderPagesEditor() {
+    if (!pageEditor) return;
+    pageEditor.replaceChildren();
+    state.pages.forEach(function (page, index) {
+      var card = create("div", "product-edit-card page-edit-card"), top = create("div", "product-edit-card-top");
+      top.appendChild(create("strong", "", "Page " + String(index + 1).padStart(2, "0")));
+      var remove = create("button", "product-remove-button", "Supprimer");
+      remove.type = "button"; remove.addEventListener("click", function () {
+        state.pages.splice(index, 1); renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft();
+      });
+      top.appendChild(remove); card.appendChild(top);
+      card.appendChild(pageInput("Titre de la page", "title", page.title, index, false));
+      card.appendChild(pageInput("Description de la page", "description", page.description, index, false));
+      card.appendChild(pageInput("Contenu", "content", page.content, index, true));
+      var visibleLabel = create("label", "page-visible-toggle"), visible = create("input");
+      visible.type = "checkbox"; visible.checked = page.visible !== false;
+      visible.addEventListener("change", function () { page.visible = visible.checked; syncPreviewProducts(); persistReleaseDraft(); });
+      visibleLabel.appendChild(visible); visibleLabel.appendChild(create("span", "", "Afficher dans le menu et sur le site"));
+      card.appendChild(visibleLabel); pageEditor.appendChild(card);
+    });
+    var count = $("#customPageCount");
+    if (count) count.textContent = state.pages.length + " page" + (state.pages.length === 1 ? "" : "s");
+  }
+  function safeImageUrl(value) {
+    var text = String(value || "").trim();
+    if (/^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(text)) return text;
+    return safeUrl(text);
+  }
+  function renderMediaLibrary() {
+    if (!mediaGrid) return;
+    mediaGrid.replaceChildren();
+    state.media.forEach(function (item, index) {
+      var card = create("div", "site-media-card"), image = create("img"), actions = create("div", "site-media-actions");
+      image.src = safeImageUrl(item.dataUrl); image.alt = item.name || "Image importée"; image.loading = "lazy";
+      card.appendChild(image); card.appendChild(create("strong", "", item.name || ("Image " + (index + 1))));
+      [["Logo", "logoUrl"], ["Bannière", "heroImageUrl"], ["Produit 1", "product"]].forEach(function (target) {
+        var button = create("button", "media-use-button", target[0]); button.type = "button";
+        button.addEventListener("click", function () {
+          if (target[1] === "product") {
+            if (!state.products.length) return announce("Ajoutez d’abord un produit au catalogue.");
+            state.products[0].image = item.dataUrl; state.products[0].customized = true; renderProductEditor();
+          } else if (field(target[1])) {
+            field(target[1]).value = item.dataUrl;
+            field(target[1]).dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          syncPreviewProducts(); persistReleaseDraft(); announce("Image appliquée : " + target[0].toLowerCase() + ".");
+        });
+        actions.appendChild(button);
+      });
+      var remove = create("button", "media-remove-button", "Retirer");
+      remove.type = "button"; remove.addEventListener("click", function () {
+        state.media.splice(index, 1); renderMediaLibrary(); persistReleaseDraft();
+      });
+      actions.appendChild(remove); card.appendChild(actions); mediaGrid.appendChild(card);
+    });
+    var count = $("#mediaCount");
+    if (count) count.textContent = state.media.length + " image" + (state.media.length === 1 ? "" : "s");
+  }
+  function handleMediaUpload(event) {
+    var files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    var queue = files.slice(0, Math.max(0, 4 - state.media.length));
+    if (!queue.length) { announce("La médiathèque est limitée à 4 images par projet."); event.target.value = ""; return; }
+    var pending = queue.length, added = 0;
+    queue.forEach(function (file) {
+      if (!/^image\/(?:png|jpeg|webp|gif)$/.test(file.type) || file.size > 150 * 1024) {
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); persistReleaseDraft(); announce(added ? added + " image(s) importée(s). Les fichiers refusés dépassent 250 Ko ou ont un format non pris en charge." : "Choisissez des images PNG, JPEG, WebP ou GIF de 250 Ko maximum."); }
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        if (state.media.length < 4 && typeof reader.result === "string") {
+          state.media.push({ id: "media-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), name: file.name.slice(0, 120), dataUrl: reader.result });
+          added += 1;
+        }
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); persistReleaseDraft(); announce(added ? added + " image(s) importée(s)." : "Aucune image n’a été importée."); }
+      };
+      reader.onerror = function () {
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); announce("Une image n’a pas pu être lue."); }
+      };
+      reader.readAsDataURL(file);
+    });
+    event.target.value = "";
+  }
+  function revisionSnapshot(label) {
+    var data = collectData();
+    data.media = [];
+    if (/^data:image\//i.test(data.template.heroImage || "")) data.template.heroImage = "";
+    if (/^data:image\//i.test(data.business.logoUrl || "")) data.business.logoUrl = "";
+    data.products = data.products.map(function (product) {
+      if (/^data:image\//i.test(product.image || "")) product.image = "";
+      return product;
+    });
+    var revisions;
+    try { revisions = JSON.parse(localStorage.getItem("sama_studio_revisions_v1") || "[]"); } catch (error) { revisions = []; }
+    if (!Array.isArray(revisions)) revisions = [];
+    revisions.unshift({ id: "revision-" + Date.now(), label: String(label || "Version manuelle").slice(0, 80), createdAt: new Date().toISOString(), templateId: data.template.id, data: data });
+    revisions = revisions.slice(0, 8);
+    try { localStorage.setItem("sama_studio_revisions_v1", JSON.stringify(revisions)); }
+    catch (error) { return announce("Espace de stockage insuffisant pour conserver cette version."); }
+    renderRevisionHistory(); announce("Version enregistrée. Tu pourras la restaurer depuis cet historique.");
+  }
+  function renderRevisionHistory() {
+    if (!revisionList) return;
+    var revisions;
+    try { revisions = JSON.parse(localStorage.getItem("sama_studio_revisions_v1") || "[]"); } catch (error) { revisions = []; }
+    if (!Array.isArray(revisions)) revisions = [];
+    revisions = revisions.filter(function (revision) { return revision.templateId === activeTemplate().id; });
+    revisionList.replaceChildren();
+    revisions.forEach(function (revision) {
+      var row = create("div", "site-revision-row"), copy = create("div", "site-revision-copy");
+      copy.appendChild(create("strong", "", revision.label || "Version"));
+      copy.appendChild(create("small", "", new Date(revision.createdAt).toLocaleString("fr-FR")));
+      var restore = create("button", "media-use-button", "Restaurer"); restore.type = "button";
+      restore.addEventListener("click", function () { restoreRevision(revision); });
+      row.appendChild(copy); row.appendChild(restore); revisionList.appendChild(row);
+    });
+    var count = $("#revisionCount");
+    if (count) count.textContent = revisions.length + " version" + (revisions.length === 1 ? "" : "s");
+    if (!revisions.length) revisionList.appendChild(create("p", "release-help", "Aucune version enregistrée pour ce modèle."));
+  }
+  function restoreRevision(revision) {
+    if (!revision || !revision.data) return;
+    var data = revision.data, b = data.business || {};
+    var mapping = { businessName: "name", businessTagline: "headline", businessCity: "city", businessPhone: "phone", businessWhatsapp: "whatsapp", businessAddress: "address", businessEmail: "email", businessDescription: "description", businessHours: "hours", businessDelivery: "delivery", businessInstagram: "instagram", businessFacebook: "facebook", logoUrl: "logoUrl", seoTitle: "seoTitle", seoDescription: "seoDescription" };
+    Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = b[mapping[id]] || ""; });
+    if (field("brandColor")) field("brandColor").value = data.design && data.design.primaryColor || activeTemplate().color;
+    if (field("heroImageUrl")) field("heroImageUrl").value = data.template && data.template.heroImage || "";
+    state.products = Array.isArray(data.products) ? data.products.map(function (p) { return { id: p.id || slug(p.name), name: p.name || "", category: p.category || "", price: p.price || "", description: p.description || "", image: safeImageUrl(p.image), stockQuantity: Number(p.stockQuantity) || 0, customized: p.isExample === false }; }) : cloneProducts(activeTemplate());
+    state.pages = Array.isArray(data.pages) ? data.pages.map(function (p) { return Object.assign({}, p); }) : [];
+    renderProductEditor(); renderPagesEditor(); renderMediaLibrary(); syncPreviewProducts(); persistReleaseDraft();
+    announce("Version restaurée. Vérifie le contenu avant de republier.");
   }
   function collectData() {
     var template = activeTemplate();
@@ -175,7 +360,7 @@
       schemaVersion: "1.1.0", product: "Sama Studio", status: "draft",
       template: {
         id: template.id, number: template.number, name: template.name, sector: template.sector, layout: template.layout,
-        eyebrow: template.eyebrow, heroImage: safeUrl(template.heroImage),
+        eyebrow: template.eyebrow, heroImage: safeImageUrl(fieldValue("heroImageUrl")) || safeImageUrl(template.heroImage),
         features: Array.isArray(template.features) ? template.features.slice() : [],
         navigation: Array.isArray(template.nav) ? template.nav.slice() : []
       },
@@ -184,7 +369,7 @@
         whatsapp: fieldValue("businessWhatsapp"), email: fieldValue("businessEmail"), address: fieldValue("businessAddress"),
         description: fieldValue("businessDescription") || template.body || "", hours: fieldValue("businessHours"),
         delivery: fieldValue("businessDelivery"), instagram: safeUrl(fieldValue("businessInstagram")),
-        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeUrl(fieldValue("logoUrl")),
+        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeImageUrl(fieldValue("logoUrl")),
         seoTitle: fieldValue("seoTitle").slice(0, 70), seoDescription: fieldValue("seoDescription").slice(0, 170)
       },
       design: {
@@ -197,12 +382,16 @@
           id: slug(product.name) + "-" + (index + 1), name: String(product.name || "").trim(),
           category: String(product.category || template.sector || "Catalogue").trim(),
           price: String(product.price || "Prix sur demande").trim(), description: String(product.description || "").trim(),
-          image: safeUrl(product.image), stockQuantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
+          image: safeImageUrl(product.image), stockQuantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
           isExample: !product.customized
         };
       }),
+      pages: state.pages.map(function (page, index) {
+        return { id: "custom-" + safePageSlug(page.slug || page.title || ("page-" + (index + 1))), title: String(page.title || "").trim().slice(0, 90), description: String(page.description || "").trim().slice(0, 170), content: String(page.content || "").slice(0, 5000), visible: page.visible !== false };
+      }),
+      media: state.media.map(function (item) { return { id: item.id, name: item.name, dataUrl: safeImageUrl(item.dataUrl) }; }),
       createdAt: new Date().toISOString(),
-      note: "Le fichier HTML exporté est autonome. Le panier utilise le navigateur et les commandes sont envoyées via WhatsApp. Aucun paiement en ligne ni stockage serveur n’est inclus."
+      note: "Site autonome avec sections personnalisées et navigation par ancres. Les commandes dépendent du mode de commande configuré."
     };
   }
   function saveExtendedDraft() {
@@ -242,7 +431,12 @@
       try { var u = new URL(String(value || ""), window.location.href); return u.protocol === "https:" || u.protocol === "http:" ? u.href : ""; }
       catch (error) { return ""; }
     }
-    function normalizedPhone(value) {
+    function safeImageUrl(value) {
+      var text = String(value || "").trim();
+      if (/^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(text)) return text;
+      return safeUrl(text);
+    }
+        function normalizedPhone(value) {
       var digits = String(value || "").replace(/\D/g, "");
       if (digits.indexOf("00") === 0) digits = digits.slice(2);
       if (digits.length === 9) digits = "221" + digits;
@@ -263,7 +457,7 @@
     }
     function productById(id) { return (D.products || []).find(function (p) { return p.id === id; }); }
     function setImage(img, src, alt) {
-      var url = safeUrl(src); img.alt = alt || "";
+      var url = safeImageUrl(src); img.alt = alt || "";
       if (url) {
         img.src = url;
         img.addEventListener("error", function () {
@@ -484,7 +678,7 @@
     }
         function setBusinessContent() {
       var logo = byId("siteLogo");
-      if (D.business.logoUrl && safeUrl(D.business.logoUrl)) {
+      if (D.business.logoUrl && safeImageUrl(D.business.logoUrl)) {
         var img = el("img", "brand-mark"); setImage(img, D.business.logoUrl, "Logo " + D.business.name);
         logo.replaceWith(img); img.id = "siteLogo";
       } else logo.textContent = (D.business.name || "S").trim().charAt(0).toLocaleUpperCase("fr") || "S";
@@ -569,14 +763,21 @@
     page.push('<meta name="theme-color" content="' + escapeHtml(data.design.primaryColor) + '">');
     page.push('<meta name="description" content="' + escapeHtml(String(data.business.seoDescription || data.business.headline || data.business.description || data.business.name).slice(0, 170)) + '">');
     page.push('<meta property="og:title" content="' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '"><meta property="og:description" content="' + escapeHtml(data.business.seoDescription || data.business.headline || data.business.description || data.business.name) + '">');
-    if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeUrl(data.template.heroImage)) + '">');
+    if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '">');
     page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css + '</style></head><body>');
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
-    page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a><a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
-    page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
+    var customPages = Array.isArray(data.pages) ? data.pages.filter(function (page) { return page.visible !== false && page.title; }) : [];
+    var customNav = customPages.map(function (page, index) { return '<a href="#' + escapeHtml("custom-" + safePageSlug(page.slug || page.title || ("page-" + index))) + '">' + escapeHtml(page.title) + '</a>'; }).join("");
+    page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a>' + customNav + '<a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
+    page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
     page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Informations et prix visibles</div><div class="trust-item"><span class="trust-icon">↗</span> Commande simple via WhatsApp</div><div class="trust-item"><span class="trust-icon">◎</span> Contact direct avec le vendeur</div></div></section>');
     page.push('<section class="section" id="catalog"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">La sélection</span><h2>Nos produits</h2></div><p>Choisis tes articles et ajoute-les au panier. La disponibilité et les conditions sont confirmées avant validation.</p></div><div class="shop-tools"><label class="sr-only" for="productSearch">Rechercher un produit</label><input id="productSearch" class="shop-input" type="search" placeholder="Rechercher un produit…"><label class="sr-only" for="categoryFilter">Catégorie</label><select id="categoryFilter" class="shop-select"><option value="">Toutes les catégories</option></select><span class="product-count" id="productCount"></span></div><div class="product-grid" id="productGrid"></div><p class="empty-products" id="noProducts" hidden>Aucun produit ne correspond à cette recherche.</p></div></section>');
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
+    customPages.forEach(function (customPage, index) {
+      var customId = "custom-" + safePageSlug(customPage.slug || customPage.title || ("page-" + index));
+      var body = escapeHtml(String(customPage.content || "")).replace(/\r?\n/g, "<br>");
+      page.push('<section class="section custom-content-section" id="' + escapeHtml(customId) + '" aria-label="' + escapeHtml(customPage.title) + '" data-page-description="' + escapeHtml(customPage.description || "") + '"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Informations</span><h2>' + escapeHtml(customPage.title) + '</h2></div><p>' + escapeHtml(customPage.description || "") + '</p></div><div class="custom-page-body">' + body + '</div></div></section>');
+    });
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
     page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
     page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
@@ -603,29 +804,51 @@
     announce("Aperçu actualisé. Votre site final sera hébergé après validation.");
   }
   function persistReleaseDraft() {
-    try { localStorage.setItem("sama_studio_release_draft_v1", JSON.stringify(collectData())); }
-    catch (error) { /* Stockage indisponible : l’export reste actif. */ }
+    try {
+      var data = collectData();
+      localStorage.setItem("sama_studio_release_draft_v1", JSON.stringify(data));
+      var drafts = JSON.parse(localStorage.getItem("sama_studio_drafts_v1") || "[]");
+      if (!Array.isArray(drafts)) drafts = [];
+      if (drafts.length) drafts[0] = Object.assign(drafts[0], data); else drafts.unshift(data);
+      localStorage.setItem("sama_studio_drafts_v1", JSON.stringify(drafts.slice(0, 50)));
+    } catch (error) { /* L’export reste possible si le stockage local est désactivé. */ }
   }
   function restoreDraft() {
     try {
       var saved = JSON.parse(localStorage.getItem("sama_studio_release_draft_v1") || "null"), template = activeTemplate();
       if (!saved || !template || !saved.template || saved.template.id !== template.id) return;
       if (saved.business) {
-        var mapping = { businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook", seoTitle:"seoTitle", seoDescription:"seoDescription" };
+        var mapping = { businessName:"name", businessTagline:"headline", businessCity:"city", businessPhone:"phone", businessWhatsapp:"whatsapp", businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook", logoUrl:"logoUrl", seoTitle:"seoTitle", seoDescription:"seoDescription" };
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
-        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
+        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeImageUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
       });
+      if (Array.isArray(saved.pages)) state.pages = saved.pages.map(function (page) { return Object.assign({}, page); });
+      if (Array.isArray(saved.media)) state.media = saved.media.filter(function (item) { return item && /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(item.dataUrl || ""); }).slice(0, 4);
+      if (saved.template && saved.template.heroImage && field("heroImageUrl")) field("heroImageUrl").value = saved.template.heroImage;
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
   function bind() {
     addExtraFields(); addReleasePanel();
+    renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory();
     var template = activeTemplate();
     if (!template) { announce("Le registre des modèles est introuvable."); return; }
     state.templateId = template.id; state.products = cloneProducts(template);
-    restoreDraft(); renderProductEditor(); syncPreviewProducts();
-    $("#addSiteProductBtn").addEventListener("click", function () {
+    restoreDraft(); renderProductEditor(); renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory(); syncPreviewProducts();
+    $("#addSitePageBtn").addEventListener("click", function () {
+      if (state.pages.length >= 12) return announce("Tu peux ajouter jusqu’à 12 pages/sections.");
+      var title = "Nouvelle page " + (state.pages.length + 1);
+      state.pages.push({ id: "custom-" + safePageSlug(title), slug: safePageSlug(title), title: title, description: "", content: "Présentez ici les informations utiles à vos visiteurs.", visible: true });
+      renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Page ajoutée.");
+    });
+    $("#createRevisionBtn").addEventListener("click", function () { revisionSnapshot("Version manuelle"); });
+    if (mediaInput) mediaInput.addEventListener("change", handleMediaUpload);
+    if (field("heroImageUrl")) {
+      field("heroImageUrl").addEventListener("input", function () { syncPreviewProducts(); persistReleaseDraft(); });
+      field("heroImageUrl").addEventListener("change", function () { syncPreviewProducts(); persistReleaseDraft(); });
+    }
+        $("#addSiteProductBtn").addEventListener("click", function () {
       if (state.products.length >= 500) return announce("Le plafond de catalogue dépend de votre formule Sama Studio.");
       state.productCounter += 1;
       state.products.push({ id:"nouveau-produit-" + state.productCounter, name:"Nouveau produit " + state.productCounter,
@@ -649,12 +872,13 @@
 
     var resetButton = $("#resetConfigBtn");
     if (resetButton) resetButton.addEventListener("click", function () {
-      state.products = cloneProducts(activeTemplate());
+      state.products = cloneProducts(activeTemplate()); state.pages = [];
+      renderPagesEditor(); syncPreviewProducts();
       Object.keys(getExtraDefaults()).forEach(function (id) {
         if (field(id)) field(id).value = getExtraDefaults()[id];
       });
-      ["seoTitle", "seoDescription"].forEach(function (id) { if (field(id)) field(id).value = ""; });
-      renderProductEditor();
+      ["seoTitle", "seoDescription", "heroImageUrl"].forEach(function (id) { if (field(id)) field(id).value = ""; });
+      renderProductEditor(); renderPagesEditor(); renderMediaLibrary();
       syncPreviewProducts();
       persistReleaseDraft();
     });
