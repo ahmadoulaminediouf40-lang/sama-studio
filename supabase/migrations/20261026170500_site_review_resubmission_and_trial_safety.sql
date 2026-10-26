@@ -50,7 +50,7 @@ begin
  end if;
  if p_decision='approved' and not exists(
   select 1 from public.products pr
-  where pr.site_id=v_site.id and pr.organization_id=v_site.organization_id and pr.is_active and not pr.is_demo
+  where pr.site_id=v_site.id and pr.organization_id=v_site.organization_id and pr.is_active and not pr.is_demo and pr.stock_quantity>0
  ) then
   raise exception 'Ajoute au moins un produit réel et actif avant d’approuver ce site.';
  end if;
