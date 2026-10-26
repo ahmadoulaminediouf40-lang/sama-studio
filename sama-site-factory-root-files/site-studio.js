@@ -438,6 +438,7 @@
       const pending = state.pendingAction;
       state.pendingAction = null;
       if (pending) pending();
+      else window.location.href = "./sama-dashboard.html";
       return;
     }
     const gate = $("#authGate");
