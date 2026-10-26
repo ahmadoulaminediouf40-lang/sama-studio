@@ -176,6 +176,23 @@
       bottom.appendChild(action); content.appendChild(bottom);
       card.appendChild(imageWrap); card.appendChild(content); grid.appendChild(card);
     });
+    var siteRoot = preview && $(".store-main", preview);
+    if (siteRoot) {
+      var oldPages = $(".store-preview-pages", siteRoot); if (oldPages) oldPages.remove();
+      var visiblePages = state.pages.filter(function (page) { return page.visible !== false && String(page.title || "").trim(); });
+      if (visiblePages.length) {
+        var section = create("section", "store-preview-pages"), heading = create("h2", "", "Pages personnalisées");
+        section.appendChild(heading);
+        visiblePages.forEach(function (page) {
+          var article = create("article", "store-preview-page"), title = create("h3", "", page.title);
+          article.id = "preview-" + safePageSlug(page.slug || page.title); article.appendChild(title);
+          if (page.description) article.appendChild(create("p", "store-preview-page-description", page.description));
+          String(page.content || "").split(/\n+/).filter(Boolean).forEach(function (paragraph) { article.appendChild(create("p", "", paragraph)); });
+          section.appendChild(article);
+        });
+        siteRoot.appendChild(section);
+      }
+    }
   }
   function safePageSlug(value) {
     return slug(value).slice(0, 55) || "page";
@@ -409,7 +426,12 @@
       try { var u = new URL(String(value || ""), window.location.href); return u.protocol === "https:" || u.protocol === "http:" ? u.href : ""; }
       catch (error) { return ""; }
     }
-    function normalizedPhone(value) {
+    function safeImageUrl(value) {
+      var text = String(value || "").trim();
+      if (/^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(text)) return text;
+      return safeUrl(text);
+    }
+        function normalizedPhone(value) {
       var digits = String(value || "").replace(/\D/g, "");
       if (digits.indexOf("00") === 0) digits = digits.slice(2);
       if (digits.length === 9) digits = "221" + digits;
@@ -430,7 +452,7 @@
     }
     function productById(id) { return (D.products || []).find(function (p) { return p.id === id; }); }
     function setImage(img, src, alt) {
-      var url = safeUrl(src); img.alt = alt || "";
+      var url = safeImageUrl(src); img.alt = alt || "";
       if (url) {
         img.src = url;
         img.addEventListener("error", function () {
@@ -739,11 +761,18 @@
     if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeUrl(data.template.heroImage)) + '">');
     page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css + '</style></head><body>');
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
-    page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a><a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
+    var customPages = Array.isArray(data.pages) ? data.pages.filter(function (page) { return page.visible !== false && page.title; }) : [];
+    var customNav = customPages.map(function (page, index) { return '<a href="#' + escapeHtml("custom-" + safePageSlug(page.slug || page.title || ("page-" + index))) + '">' + escapeHtml(page.title) + '</a>'; }).join("");
+    page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a>' + customNav + '<a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
     page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
     page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Informations et prix visibles</div><div class="trust-item"><span class="trust-icon">↗</span> Commande simple via WhatsApp</div><div class="trust-item"><span class="trust-icon">◎</span> Contact direct avec le vendeur</div></div></section>');
     page.push('<section class="section" id="catalog"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">La sélection</span><h2>Nos produits</h2></div><p>Choisis tes articles et ajoute-les au panier. La disponibilité et les conditions sont confirmées avant validation.</p></div><div class="shop-tools"><label class="sr-only" for="productSearch">Rechercher un produit</label><input id="productSearch" class="shop-input" type="search" placeholder="Rechercher un produit…"><label class="sr-only" for="categoryFilter">Catégorie</label><select id="categoryFilter" class="shop-select"><option value="">Toutes les catégories</option></select><span class="product-count" id="productCount"></span></div><div class="product-grid" id="productGrid"></div><p class="empty-products" id="noProducts" hidden>Aucun produit ne correspond à cette recherche.</p></div></section>');
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
+    customPages.forEach(function (customPage, index) {
+      var customId = "custom-" + safePageSlug(customPage.slug || customPage.title || ("page-" + index));
+      var body = escapeHtml(String(customPage.content || "")).replace(/\r?\n/g, "<br>");
+      page.push('<section class="section custom-content-section" id="' + escapeHtml(customId) + '" aria-label="' + escapeHtml(customPage.title) + '" data-page-description="' + escapeHtml(customPage.description || "") + '"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Informations</span><h2>' + escapeHtml(customPage.title) + '</h2></div><p>' + escapeHtml(customPage.description || "") + '</p></div><div class="custom-page-body">' + body + '</div></div></section>');
+    });
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
     page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
     page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
