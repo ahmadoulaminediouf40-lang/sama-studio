@@ -787,7 +787,7 @@
   function validateForExport(data, requireChecklist) {
     var confirmation = document.getElementById("releaseChecklistConfirmed");
     if (requireChecklist && (!confirmation || !confirmation.checked)) {
-      announce("Effectue et coche le contrôle final avant de télécharger le site client.");
+      announce("Coche le contrôle final avant d’envoyer le site pour validation.");
       return false;
     }
     if (!data.business.name || data.business.name.toLocaleLowerCase("fr") === "votre entreprise") { announce("Renseigne le vrai nom de l’entreprise avant la livraison."); return false; }
@@ -796,12 +796,68 @@
     if (requireChecklist && !data.products.some(function (product) { return !product.isExample && product.stockQuantity > 0; })) { announce("Remplace au moins un exemple par un produit ou service réel, puis indique au moins une disponibilité supérieure à zéro."); return false; }
     return true;
   }
+  async function submitForReview() {
+    var data;
+    try {
+      data = collectData();
+    } catch (error) {
+      announce(error && error.message ? error.message : "Impossible de lire la configuration du site.");
+      return;
+    }
+    if (!validateForExport(data, true)) return;
+    if (!window.SAMA_STUDIO || typeof window.SAMA_STUDIO.withAuth !== "function") {
+      announce("La connexion sécurisée démarre encore. Attends quelques secondes puis réessaie.");
+      return;
+    }
+
+    var buttons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
+    var oldLabels = buttons.map(function (button) { return button.textContent; });
+    var completed = false;
+    var saveAction = async function () {
+      buttons.forEach(function (button) { button.disabled = true; button.textContent = "Envoi de la demande…"; });
+      try {
+        if (!window.SAMA_STUDIO.user) throw new Error("Connecte-toi à ton compte pour envoyer la demande.");
+        var html = buildClientHtml(data);
+        var site = await window.SAMA_STUDIO.saveForReview(data, html);
+        completed = Boolean(site && site.id);
+        if (completed) {
+          announce("Demande envoyée avec succès. Ton site est maintenant en attente de validation par SAMA Studio.");
+          return site;
+        }
+        throw new Error("Le site n’a pas été enregistré. Vérifie ta connexion et réessaie.");
+      } catch (error) {
+        announce(error && error.message ? error.message : "L’enregistrement a échoué. Réessaie.");
+        return null;
+      } finally {
+        if (!completed) {
+          buttons.forEach(function (button, index) {
+            button.disabled = false;
+            button.textContent = oldLabels[index];
+          });
+        }
+      }
+    };
+
+    try {
+      if (window.SAMA_STUDIO.user) await saveAction();
+      else window.SAMA_STUDIO.withAuth(saveAction);
+    } catch (error) {
+      announce(error && error.message ? error.message : "Impossible d’ouvrir la connexion.");
+      buttons.forEach(function (button, index) {
+        button.disabled = false;
+        button.textContent = oldLabels[index];
+      });
+    }
+  }
+
   function previewWebsite() {
+    var refreshButton = $("#previewFromFormBtn");
+    if (refreshButton) refreshButton.click();
     syncPreviewProducts();
     persistReleaseDraft();
     var target = $("#storePreview");
     if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-    announce("Aperçu actualisé. Votre site final sera hébergé après validation.");
+    announce("Aperçu actualisé avec les dernières modifications. Le site sera hébergé après validation.");
   }
   function persistReleaseDraft() {
     try {
