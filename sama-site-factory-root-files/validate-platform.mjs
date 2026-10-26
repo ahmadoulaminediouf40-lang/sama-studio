@@ -15,6 +15,6 @@ const sql=readFileSync(join(root,"../supabase/migrations/202610260001_sama_studi
 for(const marker of ["enable row level security","is_org_member","create_organization","create_storefront_order","update_order_status","organization_memberships","stock_quantity"])assert.ok(sql.toLowerCase().includes(marker.toLowerCase()),"Missing database security/data feature "+marker);
 const publishFn=readFileSync(join(root,"../supabase/functions/publish-site/index.ts"),"utf8");
 const orderFn=readFileSync(join(root,"../supabase/functions/create-storefront-order/index.ts"),"utf8");
-assert.ok(publishFn.includes("NETLIFY_AUTH_TOKEN")&&publishFn.includes("publishableKey"),"Missing authenticated publish integration");
+assert.ok(publishFn.includes("CLOUDFLARE_API_TOKEN")&&publishFn.includes("CLOUDFLARE_ACCOUNT_ID")&&publishFn.includes("publishableKey"),"Missing authenticated Cloudflare Pages publishing integration");
 assert.ok(orderFn.includes("create_storefront_order")&&orderFn.includes("SUPABASE_SERVICE_ROLE_KEY"),"Missing central order API");
 console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, publishing and central orders.");
