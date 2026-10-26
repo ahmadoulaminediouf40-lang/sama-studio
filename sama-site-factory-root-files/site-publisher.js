@@ -78,6 +78,10 @@
       '<label>Instagram <span class="optional-label">facultatif</span><input id="businessInstagram" name="businessInstagram" type="url" maxlength="220" placeholder="https://instagram.com/votrecompte"></label>' +
       '<label>Facebook <span class="optional-label">facultatif</span><input id="businessFacebook" name="businessFacebook" type="url" maxlength="220" placeholder="https://facebook.com/votrepage"></label>';
     form.insertBefore(holder, anchor);
+    ["seoTitle", "seoDescription"].forEach(function (id) {
+      var input = field(id);
+      if (input) { input.addEventListener("input", persistReleaseDraft); input.addEventListener("change", persistReleaseDraft); }
+    });
     Object.keys(getExtraDefaults()).forEach(function (id) { extra[id] = field(id); });
   }
   function addReleasePanel() {
@@ -607,7 +611,7 @@
       var saved = JSON.parse(localStorage.getItem("sama_studio_release_draft_v1") || "null"), template = activeTemplate();
       if (!saved || !template || !saved.template || saved.template.id !== template.id) return;
       if (saved.business) {
-        var mapping = { businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook" };
+        var mapping = { businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook", seoTitle:"seoTitle", seoDescription:"seoDescription" };
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
@@ -649,6 +653,7 @@
       Object.keys(getExtraDefaults()).forEach(function (id) {
         if (field(id)) field(id).value = getExtraDefaults()[id];
       });
+      ["seoTitle", "seoDescription"].forEach(function (id) { if (field(id)) field(id).value = ""; });
       renderProductEditor();
       syncPreviewProducts();
       persistReleaseDraft();
