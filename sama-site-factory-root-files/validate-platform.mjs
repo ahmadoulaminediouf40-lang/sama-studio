@@ -8,7 +8,7 @@ for(const asset of ["site-release.css","site-templates.js","site-studio.js","sit
 const templates=readFileSync(join(root,"site-templates.js"),"utf8");
 for(const id of ["distribution","fashion","beauty","electronics","home","grocery","restaurant","bakery","services","realestate"])assert.ok(templates.includes('id: "'+id+'"'),"Missing template "+id);
 const publisher=readFileSync(join(root,"site-publisher.js"),"utf8");
-for(const marker of ["exportWebsiteBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","wa.me/","create-storefront-order","customerPhone"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
+for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","wa.me/","create-storefront-order","customerPhone"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
 const dashboard=readFileSync(join(root,"sama-dashboard.html"),"utf8");
 for(const marker of ["sama-dashboard.css","sama-dashboard.js","organizationSelect","productsTableWrap","ordersTableWrap"])assert.ok(dashboard.includes(marker),"Missing dashboard component "+marker);
 const sql=readFileSync(join(root,"../supabase/migrations/202610260001_sama_studio_multi_tenant.sql"),"utf8");
