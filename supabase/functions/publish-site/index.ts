@@ -282,7 +282,7 @@ Deno.serve(async (req: Request) => {
     if (pageError) return reply(500, { error: "Impossible de charger les pages publiées." });
     const pages = (pageRows || []).filter((page: Record<string, any>) => page.slug !== "home" && /^[a-z0-9][a-z0-9-]{0,78}[a-z0-9]$/.test(String(page.slug || "")));
     const pageLinks = pages.filter((page: Record<string, any>) => page.show_in_menu !== false).map((page: Record<string, any>) => '<a href="/' + encodeURIComponent(String(page.slug)) + '/">' + escapePageText(page.title) + '</a>').join("");
-    if (pageLinks) html = html.replace("</body>", '<nav aria-label="Pages du site" style="display:flex;gap:16px;flex-wrap:wrap;padding:16px;font:600 16px system-ui">' + pageLinks + "</nav></body>");
+    if (pageLinks) html = html.replace(/<body[^>]*>/i, (tag) => tag + '<nav aria-label="Pages du site" style="display:flex;gap:16px;flex-wrap:wrap;padding:16px;font:600 16px system-ui">' + pageLinks + "</nav>");
 
     const { projectName, project } = await ensureProject(accountId, cfToken, site, admin);
     const publicUrl = siteUrl(project, projectName);
