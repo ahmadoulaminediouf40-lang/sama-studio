@@ -62,7 +62,43 @@ async function showWorkspace(){
   if(state.isSamaAdmin)await Promise.all([reloadReviewQueue(),reloadSupportRequests()]);
  }catch(e){showOnly("dashboardPanel");toast(friendlyError(e),true);}
 }
-async function reloadData(){if(!state.organization)return;const id=state.organization.id;const [a,b,c,d]=await Promise.all([state.supabase.from("sites").select("id,organization_id,name,slug,template_id,status,published_url,cloudflare_project_name,cloudflare_deployment_id,created_by,created_at,updated_at,published_at").eq("organization_id",id).order("updated_at",{ascending:false}),state.supabase.from("products").select("id,organization_id,site_id,external_ref,sku,name,category,description,image_url,price,price_label,currency,stock_quantity,low_stock_threshold,is_active,is_demo,created_at,updated_at").eq("organization_id",id).order("name",{ascending:true}),state.supabase.from("orders").select("id,order_number,organization_id,site_id,customer_name,customer_phone,customer_email,customer_address,notes,status,total,currency,source,created_at,order_items(product_name,sku,quantity,unit_price,price_label,line_total)").eq("organization_id",id).order("created_at",{ascending:false}).limit(500),state.supabase.from("site_management_requests").select("id,organization_id,site_id,requested_by,message,status,created_at,updated_at").eq("organization_id",id).order("created_at",{ascending:false}).limit(100)]);const failed=[a,b,c,d].find(r=>r.error);if(failed)throw failed.error;state.sites=a.data||[];state.products=b.data||[];state.orders=c.data||[];state.managementRequests=d.data||[];if(state.editingSiteId&&!state.sites.some(s=>s.id===state.editingSiteId))state.editingSiteId=null;fillSiteSelects();renderOverview();renderSites();renderProducts();renderOrders();renderManagementRequests();$("#siteNavCount").textContent=String(state.sites.length);$("#orderNavCount").textContent=String(state.orders.filter(o=>!["completed","cancelled"].includes(o.status)).length);if(!state.editingSiteId&&state.sites.length){const select=$("#siteEditorSiteSelect");if(select)await loadSiteEditor(select.value||state.sites[0].id);}}
+function formatBytes(value){const bytes=Math.max(0,Number(value)||0);if(bytes<1000)return bytes+" o";if(bytes<1000000)return (bytes/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})+" Ko";return (bytes/1000000).toLocaleString("fr-FR",{maximumFractionDigits:2})+" Mo";}
+async function reloadData(){
+ if(!state.organization)return;
+ const id=state.organization.id;
+ const [a,b,c,d,usageResult]=await Promise.all([
+  state.supabase.from("sites").select("id,organization_id,name,slug,template_id,status,review_status,review_note,submitted_at,reviewed_at,published_url,cloudflare_project_name,cloudflare_deployment_id,created_by,created_at,updated_at,published_at").eq("organization_id",id).order("updated_at",{ascending:false}),
+  state.supabase.from("products").select("id,organization_id,site_id,external_ref,sku,name,category,description,image_url,price,price_label,currency,stock_quantity,low_stock_threshold,is_active,is_demo,created_at,updated_at").eq("organization_id",id).order("name",{ascending:true}),
+  state.supabase.from("orders").select("id,order_number,organization_id,site_id,customer_name,customer_phone,customer_email,customer_address,notes,status,total,currency,source,created_at,order_items(product_name,sku,quantity,unit_price,price_label,line_total)").eq("organization_id",id).order("created_at",{ascending:false}).limit(500),
+  state.supabase.from("site_management_requests").select("id,organization_id,site_id,requested_by,message,status,created_at,updated_at").eq("organization_id",id).order("created_at",{ascending:false}).limit(100),
+  state.supabase.rpc("get_organization_usage",{p_organization_id:id})
+ ]);
+ const failed=[a,b,c,d].find(r=>r.error);if(failed)throw failed.error;
+ state.sites=a.data||[];state.products=b.data||[];state.orders=c.data||[];state.managementRequests=d.data||[];
+ if(!usageResult.error&&usageResult.data)state.orgUsage=usageResult.data;
+ if(state.editingSiteId&&!state.sites.some(s=>s.id===state.editingSiteId))state.editingSiteId=null;
+ fillSiteSelects();renderOverview();renderSites();renderProducts();renderOrders();renderManagementRequests();
+ $("#siteNavCount").textContent=String(state.sites.length);
+ $("#orderNavCount").textContent=String(state.orders.filter(o=>!["completed","cancelled"].includes(o.status)).length);
+ updatePlanSummary();
+ if(state.isSamaAdmin)await reloadReviewQueue();
+ if(!state.editingSiteId&&state.sites.length){const select=$("#siteEditorSiteSelect");if(select)await loadSiteEditor(select.value||state.sites[0].id);}
+}
+function updatePlanSummary(){
+ const usage=state.orgUsage;
+ if(!usage){
+  $("#settingsPlanName").textContent=state.organization?.subscription_plan||"—";
+  $("#settingsUsageSummary").textContent="Impossible de charger la capacité de votre formule.";
+  $("#settingsAccountStatus").textContent="—";
+  $("#settingsAccountNote").textContent="";
+  return;
+ }
+ $("#settingsPlanName").textContent=usage.plan_name||usage.plan_code||"—";
+ $("#settingsUsageSummary").textContent=(Number(usage.site_count)||0)+" / "+usage.max_sites+" sites · "+(Number(usage.product_count)||0)+" / "+usage.max_products+" produits · "+formatBytes(usage.site_html_bytes)+" / "+formatBytes(usage.max_total_site_html_bytes);
+ const account=usage.account_status||state.organization?.account_status||"pending";
+ $("#settingsAccountStatus").textContent=({pending:"En attente de validation",active:"Actif",suspended:"Suspendu"})[account]||account;
+ $("#settingsAccountNote").textContent=account==="active"?"Ton compte est activé. Les nouveaux sites doivent encore être validés.":account==="suspended"?"Contacte SAMA Studio pour rétablir l’accès.":"SAMA Studio doit valider ton premier site avant l’activation complète du compte.";
+}
 function fillSiteSelects(){["productSiteSelect","inventorySiteFilter","orderSiteFilter","siteEditorSiteSelect","managementRequestSiteSelect"].forEach(id=>{const select=$("#"+id);if(!select)return;const prev=select.value;select.replaceChildren();if(!["productSiteSelect","siteEditorSiteSelect","managementRequestSiteSelect"].includes(id)){const all=node("option","","Tous les sites");all.value="";select.appendChild(all);}state.sites.forEach(site=>{const o=node("option","",site.name);o.value=site.id;select.appendChild(o);});if([...select.options].some(o=>o.value===prev))select.value=prev;else if(["siteEditorSiteSelect","managementRequestSiteSelect","productSiteSelect"].includes(id)&&state.sites.length)select.value=state.sites[0].id;if(!state.sites.length){const o=node("option","","Crée d’abord un site");o.value="";select.appendChild(o);select.disabled=true;}else select.disabled=false;});}
 function createTable(headers){const table=node("table","data-table"),head=node("thead"),row=node("tr");headers.forEach(t=>row.appendChild(node("th","",t)));head.appendChild(row);table.appendChild(head);table.appendChild(node("tbody"));return table;}
 function setTableContent(wrapper,table,exists,message){wrapper.replaceChildren();wrapper.appendChild(exists?table:node("div","empty-state",message));}
