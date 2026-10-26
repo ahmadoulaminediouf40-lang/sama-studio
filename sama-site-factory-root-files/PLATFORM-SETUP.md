@@ -21,6 +21,7 @@ Les migrations versionnées sont dans `supabase/migrations/` :
 
 - `202610260001_sama_studio_multi_tenant.sql` crée les profils, organisations, memberships, sites, produits, commandes, lignes de commande, fonctions RPC, contraintes, index et politiques RLS.
 - `202610260002_harden_site_publish_permissions.sql` interdit aux utilisateurs du navigateur de modifier directement le statut ou le contenu de publication.
+- `20261026133734_revoke_handle_new_auth_user_execute.sql` bloque l’appel direct de la fonction trigger d’inscription via l’API REST, tout en la laissant utilisable par le trigger Supabase.
 
 Applique les migrations avec le CLI Supabase depuis la racine du dépôt :
 
