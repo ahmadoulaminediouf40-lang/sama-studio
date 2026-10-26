@@ -29,4 +29,7 @@ assert.ok(publishFn.includes("CLOUDFLARE_API_TOKEN")&&publishFn.includes("CLOUDF
 assert.ok(publishFn.includes("renderSitePage")&&publishFn.includes("site_pages")&&publishFn.includes("status\", \"published\""),"Missing published CMS pages in static deployment");
 assert.ok(publishFn.includes("addHtmlAsset(String(page.slug) + \"/index.html\"")&&publishFn.includes("seo_description")&&publishFn.includes("aria-label=\"Navigation"),"Missing page routes, SEO metadata, or page navigation");
 assert.ok(orderFn.includes("create_storefront_order")&&orderFn.includes("SUPABASE_SERVICE_ROLE_KEY")&&orderFn.includes("SUPABASE_SECRET_KEYS"),"Missing central order API or modern Supabase secret-key support");
-console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, publishing and central orders.");
+const publishSource=readFileSync(join(root,"../supabase/functions/publish-site/index.ts"),"utf8");
+assert.ok(publishSource.includes("Self-service publishing")&&publishSource.includes("trial_ends_at"),"Missing self-service publishing with trial/subscription enforcement.");
+assert.ok(dashboard.includes("Publier mon site")&&dashboard.includes('neq("status","published")'),"Missing owner self-publishing UI or published-site review queue exclusion.");
+console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, self-service publishing and WhatsApp orders.");
