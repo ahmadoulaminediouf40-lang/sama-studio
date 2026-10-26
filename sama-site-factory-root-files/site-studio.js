@@ -511,7 +511,7 @@
         const { data, error } = await state.supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name } }
+          options: { emailRedirectTo: new URL("./site-studio.html", window.location.href).href, data: { full_name: name } }
         });
         if (error) throw error;
         if (data.session && data.user) {
