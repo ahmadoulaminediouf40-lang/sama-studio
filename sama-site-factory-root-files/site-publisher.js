@@ -338,7 +338,7 @@
       schemaVersion: "1.1.0", product: "Sama Studio", status: "draft",
       template: {
         id: template.id, number: template.number, name: template.name, sector: template.sector, layout: template.layout,
-        eyebrow: template.eyebrow, heroImage: safeUrl(template.heroImage),
+        eyebrow: template.eyebrow, heroImage: safeImageUrl(fieldValue("heroImageUrl")) || safeImageUrl(template.heroImage),
         features: Array.isArray(template.features) ? template.features.slice() : [],
         navigation: Array.isArray(template.nav) ? template.nav.slice() : []
       },
@@ -360,12 +360,16 @@
           id: slug(product.name) + "-" + (index + 1), name: String(product.name || "").trim(),
           category: String(product.category || template.sector || "Catalogue").trim(),
           price: String(product.price || "Prix sur demande").trim(), description: String(product.description || "").trim(),
-          image: safeUrl(product.image), stockQuantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
+          image: safeImageUrl(product.image), stockQuantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
           isExample: !product.customized
         };
       }),
+      pages: state.pages.map(function (page, index) {
+        return { id: "custom-" + safePageSlug(page.slug || page.title || ("page-" + (index + 1))), title: String(page.title || "").trim().slice(0, 90), description: String(page.description || "").trim().slice(0, 170), content: String(page.content || "").slice(0, 5000), visible: page.visible !== false };
+      }),
+      media: state.media.map(function (item) { return { id: item.id, name: item.name, dataUrl: safeImageUrl(item.dataUrl) }; }),
       createdAt: new Date().toISOString(),
-      note: "Le fichier HTML exporté est autonome. Le panier utilise le navigateur et les commandes sont envoyées via WhatsApp. Aucun paiement en ligne ni stockage serveur n’est inclus."
+      note: "Site autonome avec sections personnalisées et navigation par ancres. Les commandes dépendent du mode de commande configuré."
     };
   }
   function saveExtendedDraft() {
@@ -766,29 +770,51 @@
     announce("Aperçu actualisé. Votre site final sera hébergé après validation.");
   }
   function persistReleaseDraft() {
-    try { localStorage.setItem("sama_studio_release_draft_v1", JSON.stringify(collectData())); }
-    catch (error) { /* Stockage indisponible : l’export reste actif. */ }
+    try {
+      var data = collectData();
+      localStorage.setItem("sama_studio_release_draft_v1", JSON.stringify(data));
+      var drafts = JSON.parse(localStorage.getItem("sama_studio_drafts_v1") || "[]");
+      if (!Array.isArray(drafts)) drafts = [];
+      if (drafts.length) drafts[0] = Object.assign(drafts[0], data); else drafts.unshift(data);
+      localStorage.setItem("sama_studio_drafts_v1", JSON.stringify(drafts.slice(0, 50)));
+    } catch (error) { /* L’export reste possible si le stockage local est désactivé. */ }
   }
   function restoreDraft() {
     try {
       var saved = JSON.parse(localStorage.getItem("sama_studio_release_draft_v1") || "null"), template = activeTemplate();
       if (!saved || !template || !saved.template || saved.template.id !== template.id) return;
       if (saved.business) {
-        var mapping = { businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook", seoTitle:"seoTitle", seoDescription:"seoDescription" };
+        var mapping = { businessName:"name", businessTagline:"headline", businessCity:"city", businessPhone:"phone", businessWhatsapp:"whatsapp", businessAddress:"address", businessEmail:"email", businessDescription:"description", businessHours:"hours", businessDelivery:"delivery", businessInstagram:"instagram", businessFacebook:"facebook", logoUrl:"logoUrl", seoTitle:"seoTitle", seoDescription:"seoDescription" };
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
         return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
       });
+      if (Array.isArray(saved.pages)) state.pages = saved.pages.map(function (page) { return Object.assign({}, page); });
+      if (Array.isArray(saved.media)) state.media = saved.media.filter(function (item) { return item && /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(item.dataUrl || ""); }).slice(0, 6);
+      if (saved.template && saved.template.heroImage && field("heroImageUrl")) field("heroImageUrl").value = saved.template.heroImage;
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
   function bind() {
     addExtraFields(); addReleasePanel();
+    renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory();
     var template = activeTemplate();
     if (!template) { announce("Le registre des modèles est introuvable."); return; }
     state.templateId = template.id; state.products = cloneProducts(template);
-    restoreDraft(); renderProductEditor(); syncPreviewProducts();
-    $("#addSiteProductBtn").addEventListener("click", function () {
+    restoreDraft(); renderProductEditor(); renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory(); syncPreviewProducts();
+    $("#addSitePageBtn").addEventListener("click", function () {
+      if (state.pages.length >= 12) return announce("Tu peux ajouter jusqu’à 12 pages/sections.");
+      var title = "Nouvelle page " + (state.pages.length + 1);
+      state.pages.push({ id: "custom-" + safePageSlug(title), slug: safePageSlug(title), title: title, description: "", content: "Présentez ici les informations utiles à vos visiteurs.", visible: true });
+      renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Page ajoutée.");
+    });
+    $("#createRevisionBtn").addEventListener("click", function () { revisionSnapshot("Version manuelle"); });
+    if (mediaInput) mediaInput.addEventListener("change", handleMediaUpload);
+    if (field("heroImageUrl")) {
+      field("heroImageUrl").addEventListener("input", function () { syncPreviewProducts(); persistReleaseDraft(); });
+      field("heroImageUrl").addEventListener("change", function () { syncPreviewProducts(); persistReleaseDraft(); });
+    }
+        $("#addSiteProductBtn").addEventListener("click", function () {
       if (state.products.length >= 500) return announce("Le plafond de catalogue dépend de votre formule Sama Studio.");
       state.productCounter += 1;
       state.products.push({ id:"nouveau-produit-" + state.productCounter, name:"Nouveau produit " + state.productCounter,
@@ -812,12 +838,13 @@
 
     var resetButton = $("#resetConfigBtn");
     if (resetButton) resetButton.addEventListener("click", function () {
-      state.products = cloneProducts(activeTemplate());
+      state.products = cloneProducts(activeTemplate()); state.pages = [];
+      renderPagesEditor(); syncPreviewProducts();
       Object.keys(getExtraDefaults()).forEach(function (id) {
         if (field(id)) field(id).value = getExtraDefaults()[id];
       });
-      ["seoTitle", "seoDescription"].forEach(function (id) { if (field(id)) field(id).value = ""; });
-      renderProductEditor();
+      ["seoTitle", "seoDescription", "heroImageUrl"].forEach(function (id) { if (field(id)) field(id).value = ""; });
+      renderProductEditor(); renderPagesEditor(); renderMediaLibrary();
       syncPreviewProducts();
       persistReleaseDraft();
     });
