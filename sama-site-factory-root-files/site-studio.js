@@ -485,6 +485,7 @@
       // The explicit submit handler consumes the pending action exactly once.
     });
     updateAuthButton();
+    if (!state.user) openAuthGate();
     window.SAMA_STUDIO = {
       get supabase() { return state.supabase; },
       get user() { return state.user; },
