@@ -524,13 +524,13 @@
       byId("siteYear").textContent = String(new Date().getFullYear());
     }
     function initialize() {
-      document.title = D.business.name + " | " + (D.template.sector || "Boutique");
+      document.title = D.business.seoTitle || (D.business.name + " | " + (D.template.sector || "Boutique"));
       document.body.dataset.layout = D.template.layout || "catalog";
       document.body.classList.add("layout-" + String(D.template.layout || "catalog").replace(/[^a-z0-9_-]/gi, ""));
       document.documentElement.style.setProperty("--brand", D.design.primaryColor || "#17633d");
       document.documentElement.style.setProperty("--soft", D.design.secondaryColor || "#e9f5ec");
       document.documentElement.style.setProperty("--dark", D.design.darkColor || "#153c2c");
-      document.querySelector('meta[name="description"]').setAttribute("content", String(D.business.headline || D.business.description || D.business.name).slice(0, 155));
+      document.querySelector('meta[name="description"]').setAttribute("content", String(D.business.seoDescription || D.business.headline || D.business.description || D.business.name).slice(0, 170));
       setBusinessContent(); fillCategories(); renderProducts();
       try {
         var loaded = JSON.parse(localStorage.getItem(key) || "{}");
