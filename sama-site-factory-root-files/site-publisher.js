@@ -200,19 +200,6 @@
       note: "Le fichier HTML exporté est autonome. Le panier utilise le navigateur et les commandes sont envoyées via WhatsApp. Aucun paiement en ligne ni stockage serveur n’est inclus."
     };
   }
-  function downloadBlob(filename, content, type) {
-    var url = URL.createObjectURL(new Blob([content], { type: type || "application/octet-stream" }));
-    var link = document.createElement("a"); link.href = url; link.download = filename; link.style.display = "none";
-    document.body.appendChild(link); link.click(); link.remove();
-    window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-  }
-  function exportJson() {
-    try {
-      var data = collectData();
-      downloadBlob("sama-studio-" + slug(data.business.name) + ".json", JSON.stringify(data, null, 2), "application/json;charset=utf-8");
-      announce("Fiche complète exportée, catalogue inclus.");
-    } catch (error) { announce(error.message || "Impossible de générer la fiche."); }
-  }
   function saveExtendedDraft() {
     try {
       var data = collectData();
@@ -601,56 +588,6 @@
     if (data.products.some(function (product) { return !product.name; })) { announce("Chaque produit doit avoir un nom."); return false; }
     if (requireChecklist && !data.products.some(function (product) { return !product.isExample && product.stockQuantity > 0; })) { announce("Remplace au moins un exemple par un produit ou service réel, puis indique au moins une disponibilité supérieure à zéro."); return false; }
     return true;
-  }
-  function prepareClientHtml(requireChecklist) {
-    var data;
-    try { data = collectData(); } catch (error) { announce(error.message || "Impossible de préparer le site."); return null; }
-    if (!validateForExport(data, requireChecklist)) return null;
-    if (!normalizeWhatsapp(data.business.whatsapp || data.business.phone)) announce("Site exportable, mais ajoute un numéro WhatsApp international pour activer les commandes.");
-    return buildClientHtml(data);
-  }
-  var isSubmittingReview = false;
-  async function submitForReview() {
-    if (isSubmittingReview) return;
-    var runSave = async function () {
-      if (isSubmittingReview) return;
-      var data, html;
-      try {
-        data = collectData();
-        if (!validateForExport(data, true)) return;
-        html = buildClientHtml(data);
-        if (!window.SAMA_STUDIO || typeof window.SAMA_STUDIO.saveForReview !== "function") {
-          throw new Error("La connexion sécurisée n’est pas prête. Recharge la page puis réessaie.");
-        }
-      } catch (error) {
-        announce(error.message || "Impossible de préparer le site.");
-        return;
-      }
-      isSubmittingReview = true;
-      var buttons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
-      buttons.forEach(function (button) { button.disabled = true; button.dataset.oldText = button.textContent; button.textContent = "Enregistrement…"; });
-      try {
-        await window.SAMA_STUDIO.saveForReview(data, html);
-        persistReleaseDraft();
-        announce("Site enregistré. La demande de validation a été envoyée à SAMA Studio.");
-      } catch (error) {
-        announce(error?.message || "L’enregistrement a échoué. Vérifiez votre connexion puis réessayez.");
-        buttons.forEach(function (button) { button.disabled = false; button.textContent = button.dataset.oldText || "Enregistrer et demander validation"; });
-        isSubmittingReview = false;
-      }
-    };
-    if (!window.SAMA_STUDIO || typeof window.SAMA_STUDIO.withAuth !== "function") {
-      announce("La connexion sécurisée se prépare. Réessaie dans quelques secondes.");
-      return;
-    }
-    window.SAMA_STUDIO.withAuth(runSave);
-  }
-
-  function exportWebsite() {
-    var html = prepareClientHtml(true); if (!html) return;
-    var data = collectData();
-    downloadBlob(slug(data.business.name) + "-site.html", html, "text/html;charset=utf-8");
-    persistReleaseDraft(); announce("Site client HTML généré. Ouvre-le dans un navigateur pour le tester.");
   }
   function previewWebsite() {
     syncPreviewProducts();
