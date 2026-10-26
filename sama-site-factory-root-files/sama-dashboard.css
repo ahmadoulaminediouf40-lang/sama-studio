@@ -23,3 +23,30 @@
 .support-requests-list .data-table td small{max-width:210px;overflow-wrap:anywhere}
 .support-requests-list .action-cell{white-space:normal;min-width:170px}
 .support-requests-list .action-cell .btn{margin:3px 3px 3px 0}
+
+/* SaaS review queue, plan usage and online site creation */
+.creator-callout{background:linear-gradient(115deg,#fff,#f0f7ed);border-color:#dce8d7}
+.creator-callout .panel-heading h2{font-size:clamp(18px,2vw,23px)}
+.creator-callout .form-submit-row{margin-top:12px}
+.creator-callout .btn{width:fit-content}
+.review-status-pending{background:#fff1dd;color:#98621f}
+.review-status-approved{background:#e7f5e9;color:#227340}
+.review-status-changes_requested{background:#fff2df;color:#915c18}
+.review-status-rejected{background:#fbeceb;color:#a74640}
+.review-status-draft{background:#edf1ed;color:#66776b}
+.review-notifications{display:grid;gap:9px;margin-bottom:18px;padding:15px;border-radius:12px;background:#f4f8f2;border:1px solid #e2ebdf}
+.review-notifications-heading{font-size:11px;font-weight:900;color:#48634e}
+.review-notification{display:grid;gap:4px;padding:10px;border-radius:9px;background:#fff;border:1px solid #e4ece1}
+.review-notification strong{font-size:11px}
+.review-notification span{font-size:10px;line-height:1.6;color:#6d7d70}
+.review-notification small{font-size:9px;color:#97a297}
+.review-notifications>.btn{width:fit-content;margin-top:3px}
+#reviewRequestsTableWrap .data-table{min-width:900px}
+#reviewRequestsTableWrap .data-table td{vertical-align:top;line-height:1.65;overflow-wrap:anywhere}
+#reviewRequestsTableWrap .action-cell{white-space:normal;min-width:175px}
+#reviewRequestsTableWrap .action-cell .btn{margin:3px 3px 3px 0;white-space:normal;text-align:center}
+#reviewRequestsTableWrap .data-table td:nth-child(2){min-width:145px}
+#reviewRequestsTableWrap .data-table td small{max-width:230px;overflow-wrap:anywhere}
+.settings-grid>div:first-child{background:#f0f7ec;border-color:#dce8d5}
+.settings-grid #settingsUsageSummary{font-variant-numeric:tabular-nums}
+@media(max-width:600px){.creator-callout .btn{width:100%}.review-notifications>.btn{width:100%}}

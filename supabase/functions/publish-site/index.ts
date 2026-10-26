@@ -169,13 +169,26 @@ Deno.serve(async (req: Request) => {
   if (!/^[0-9a-f-]{36}$/i.test(siteId)) return reply(400, { error: "Identifiant de site invalide." });
 
   const { data: site, error: siteError } = await userDb.from("sites")
-    .select("id,organization_id,name,slug,status,html_content,cloudflare_project_name,cloudflare_deployment_id,published_url,published_at")
+    .select("id,organization_id,name,slug,status,review_status,submitted_at,html_content,cloudflare_project_name,cloudflare_deployment_id,published_url,published_at")
     .eq("id", siteId).single();
   if (siteError || !site) return reply(404, { error: "Site introuvable ou accès refusé." });
   const { data: membership } = await userDb.from("organization_memberships")
     .select("role").eq("organization_id", site.organization_id).eq("user_id", authData.user.id).maybeSingle();
-  if (!membership || !["owner", "admin"].includes(membership.role)) {
-    return reply(403, { error: "Seuls le propriétaire ou l’administrateur peuvent publier un site." });
+  const { data: platformAdmin, error: platformAdminError } = await userDb.from("site_management_admins")
+    .select("user_id").eq("user_id", authData.user.id).maybeSingle();
+  if (platformAdminError) return reply(403, { error: "Impossible de vérifier les droits de publication." });
+  const isPlatformAdmin = Boolean(platformAdmin);
+  const isOrgAdmin = Boolean(membership && ["owner", "admin"].includes(membership.role));
+  if (!isOrgAdmin && !isPlatformAdmin) {
+    return reply(403, { error: "Seul le propriétaire, l’administrateur ou un gestionnaire SAMA Studio autorisé peut publier." });
+  }
+  if (!site.submitted_at || site.review_status !== "approved") {
+    return reply(409, { error: "Ce site doit d’abord être envoyé et approuvé par SAMA Studio avant sa publication." });
+  }
+  const { data: organization } = await userDb.from("organizations")
+    .select("account_status").eq("id", site.organization_id).maybeSingle();
+  if (!isPlatformAdmin && organization?.account_status !== "active") {
+    return reply(403, { error: "Le compte doit être activé par SAMA Studio avant la publication." });
   }
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
 
