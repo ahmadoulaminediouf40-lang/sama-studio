@@ -13,3 +13,13 @@
 .management-request-message{font-size:11px;line-height:1.6;color:#718176;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0}
 .management-request-row .status-pill{margin-top:1px}
 @media(max-width:600px){.management-request-row{flex-wrap:wrap}.management-request-row .item-copy{flex-basis:calc(100% - 20px)}.management-request-row .status-pill{margin-left:auto}}
+
+/* SAMA Studio support inbox */
+.support-requests-list{width:100%;min-width:0}
+.support-requests-list .empty-state{margin-top:6px}
+.support-requests-list .data-table{min-width:820px}
+.support-requests-list .data-table td{vertical-align:top;line-height:1.65;overflow-wrap:anywhere}
+.support-requests-list .data-table td:nth-child(2){min-width:200px;max-width:360px;white-space:pre-wrap}
+.support-requests-list .data-table td small{max-width:210px;overflow-wrap:anywhere}
+.support-requests-list .action-cell{white-space:normal;min-width:170px}
+.support-requests-list .action-cell .btn{margin:3px 3px 3px 0}
