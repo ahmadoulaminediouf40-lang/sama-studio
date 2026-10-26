@@ -382,7 +382,7 @@
     $("#authGateSignUpTab")?.addEventListener("click", () => setAuthMode("signup"));
     $("#authGateSwitch")?.addEventListener("click", () => setAuthMode(state.authMode === "signin" ? "signup" : "signin"));
     $("#authGateForm")?.addEventListener("submit", handleAuthSubmit);
-    $("[data-auth-close]").forEach(button => button.addEventListener("click", closeAuthGate));
+    Array.from(document.querySelectorAll("[data-auth-close]")).forEach(button => button.addEventListener("click", closeAuthGate));
     document.addEventListener("keydown", event => { if (event.key === "Escape") closeAuthGate(); });
     $("#desktopPreviewBtn").addEventListener("click", () => setPreviewMode("desktop"));
     $("#mobilePreviewBtn").addEventListener("click", () => setPreviewMode("mobile"));
