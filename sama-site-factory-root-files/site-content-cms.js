@@ -105,7 +105,7 @@ async function loadPages() {
   const { data, error } = await supabase.from("site_pages")
     .select("id,site_id,organization_id,title,slug,content,seo_title,seo_description,status,menu_order,show_in_menu,updated_at")
     .eq("site_id", ui.site.value).order("menu_order", { ascending: true }).order("created_at", { ascending: true });
-  if (error) throw announce(friendly(error), true);
+  if (error) { announce(friendly(error), true); return; }
   ui.list.replaceChildren();
   (data || []).forEach(page => {
     const card = node("article", "cms-item");
