@@ -363,10 +363,12 @@
       field.addEventListener("input", () => {
         state.customIdentity = true;
         renderPreview();
+        window.SAMA_PUBLISHER?.persistDraft?.();
       });
       field.addEventListener("change", () => {
         state.customIdentity = true;
         renderPreview();
+        window.SAMA_PUBLISHER?.persistDraft?.();
       });
     });
     form.addEventListener("submit", saveProject);
