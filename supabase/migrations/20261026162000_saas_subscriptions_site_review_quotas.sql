@@ -32,9 +32,7 @@ alter table public.organizations
   add column if not exists activated_at timestamptz;
 
 -- Existing production accounts remain active; new accounts stay pending until approved.
-update public.organizations
-set account_status='active', subscription_status='active', activated_at=coalesce(activated_at,now())
-where account_status='pending' and created_at < now();
+-- Preserve pending status for all new accounts; activation is performed only after SAMA Studio approves the first site.
 
 alter table public.sites
   add column if not exists review_status text not null default 'draft'
