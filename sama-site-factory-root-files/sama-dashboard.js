@@ -114,7 +114,7 @@ async function saveAndPublishEditedSite(){if(!$("#siteEditorForm").reportValidit
 async function reloadReviewQueue(){
  if(!state.isSamaAdmin)return;
  const [siteResult,noticeResult]=await Promise.all([
-  state.supabase.from("sites").select("id,organization_id,name,slug,template_id,status,review_status,review_note,submitted_at,created_at,updated_at,published_url,created_by").not("submitted_at","is",null).in("review_status",["pending","approved","changes_requested"]).order("submitted_at",{ascending:false}).limit(200),
+  state.supabase.from("sites").select("id,organization_id,name,slug,template_id,status,review_status,review_note,submitted_at,created_at,updated_at,published_url,created_by").not("submitted_at","is",null).neq("status","published").in("review_status",["pending","approved","changes_requested"]).order("submitted_at",{ascending:false}).limit(200),
   state.supabase.from("site_review_notifications").select("id,recipient_id,site_id,organization_id,event_type,title,message,created_at,read_at").eq("recipient_id",state.user.id).is("read_at",null).order("created_at",{ascending:false}).limit(100)
  ]);
  if(siteResult.error)throw siteResult.error;
@@ -272,18 +272,24 @@ function renderSites(){
    const link=node("a","",site.published_url.replace(/^https?:\/\//,""));link.href=site.published_url;link.target="_blank";link.rel="noopener noreferrer";link.style.color="#34794b";link.style.fontWeight="750";address.appendChild(link);
   }else address.appendChild(node("span","","En attente de validation ou de publication"));
   status.appendChild(statusPill(site.status));
-  if(site.review_status)status.appendChild(reviewStatusPill(site.review_status));
-  if(site.review_note)status.appendChild(node("small","",site.review_note));
+  if(site.review_status&&site.status!=="published")status.appendChild(reviewStatusPill(site.review_status));
+  if(site.review_note&&site.status!=="published")status.appendChild(node("small","",site.review_note));
   const manage=node("button","btn btn-outline","Modifier");manage.type="button";manage.disabled=![ "owner","admin"].includes(state.role);manage.addEventListener("click",()=>openSiteManager(site));
   append(actions,manage);
-  if(site.review_status==="pending"){
+  const trialValid=state.organization?.subscription_status==="trial"&&Boolean(state.organization?.trial_ends_at)&&new Date(state.organization.trial_ends_at).getTime()>Date.now();
+  const subscriptionValid=state.organization?.subscription_status==="active"||trialValid;
+  const canSelfPublish=["owner","admin"].includes(state.role)&&state.organization?.account_status==="active"&&subscriptionValid;
+  if(site.status==="published"){
+   const live=node("button","btn btn-outline","En ligne ↗");live.type="button";live.addEventListener("click",()=>{if(site.published_url)window.open(site.published_url,"_blank","noopener,noreferrer");});append(actions,live);
+  }else if(canSelfPublish){
+   const publish=node("button","btn btn-primary","Publier mon site");publish.type="button";publish.addEventListener("click",()=>publishSite(site,publish));append(actions,publish);
+   if(site.review_status==="pending")actions.appendChild(node("small","muted-small","Publication autonome disponible"));
+  }else if(site.review_status==="pending"){
    const waiting=node("button","btn btn-outline","En validation");waiting.type="button";waiting.disabled=true;append(actions,waiting);
   }else if(site.review_status==="changes_requested"||site.review_status==="draft"||!site.review_status){
    const submit=node("button","btn btn-primary","Demander validation");submit.type="button";submit.disabled=![ "owner","admin"].includes(state.role);submit.addEventListener("click",()=>submitSiteForReview(site,submit));append(actions,submit);
   }else if(site.review_status==="approved"&&site.status!=="published"){
    const approved=node("button","btn btn-outline","Approuvé · activation");approved.type="button";approved.disabled=true;append(actions,approved);
-  }else if(site.status==="published"){
-   const live=node("button","btn btn-outline","En ligne");live.type="button";live.disabled=true;append(actions,live);
   }
   tbody.appendChild(row);
  });
