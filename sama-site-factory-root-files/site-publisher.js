@@ -648,7 +648,7 @@
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
-        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", customized:p.isExample===false || Boolean(p.customized) };
+        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
       });
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
