@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { md5 } from "https://esm.sh/@noble/hashes@1.8.0/legacy";
+import sanitizeHtml from "https://esm.sh/sanitize-html@2.17.0";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -154,7 +155,14 @@ function renderSitePage(page: Record<string, any>, siteName: string, pages: Reco
   const description = escapePageText(page.seo_description || "");
   const value = page.content;
   const raw = typeof value === "string" ? value : String(value?.body ?? value?.content ?? "");
-  const content = escapePageText(raw).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>\n");
+  const content = value && typeof value === "object" && value.format === "html"
+    ? sanitizeHtml(raw, {
+      allowedTags: ["p","br","strong","b","em","i","u","h2","h3","h4","ul","ol","li","blockquote","a","hr"],
+      allowedAttributes: { a: ["href","title"] },
+      allowedSchemes: ["http","https","mailto","tel"],
+      disallowedTagsMode: "discard"
+    })
+    : escapePageText(raw).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>\n");
   const links = pages.filter((item) => item.show_in_menu !== false && item.slug !== "home").map((item) => '<a href="/' + encodeURIComponent(String(item.slug)) + '/">' + escapePageText(item.title) + '</a>').join(" ");
   return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title>' + (description ? '<meta name="description" content="' + description + '">' : '') + '<style>body{font:16px/1.7 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 24px;color:#17231b}nav{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0}a{color:#286340}main{margin-top:48px}</style></head><body><header><a href="/">' + escapePageText(siteName) + '</a><nav aria-label="Navigation"><a href="/">Accueil</a>' + links + '</nav></header><main><h1>' + escapePageText(page.title || siteName) + '</h1><article>' + content + '</article></main></body></html>';
 }
