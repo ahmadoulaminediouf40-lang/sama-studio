@@ -309,30 +309,63 @@
     }
     function persistCart() { try { localStorage.setItem(key, JSON.stringify(cart)); } catch (error) { /* Panier conservé en mémoire. */ } }
     function cartItemCount() { return Object.keys(cart).reduce(function (sum, id) { return sum + (Number(cart[id]) || 0); }, 0); }
+    function cartPriceValue(product) {
+      var source = String(product && (product.price || product.price_label) || "").replace(/\u00a0/g, " ");
+      var match = source.match(/\d[\d\s.,]*/);
+      if (!match) return null;
+      var value = Number(match[0].replace(/[^0-9]/g, ""));
+      return Number.isFinite(value) ? Math.max(0, value) : null;
+    }
+    function cartMoney(value) {
+      try { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: D.business.currency || "XOF", maximumFractionDigits: 0 }).format(Number(value) || 0); }
+      catch (error) { return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number(value) || 0) + " " + (D.business.currency || "XOF"); }
+    }
     function renderCart() {
       cartLines.replaceChildren();
       var entries = Object.keys(cart).map(function (id) { return { product: productById(id), quantity: Number(cart[id]) || 0 }; })
         .filter(function (entry) { return entry.product && entry.quantity > 0; });
+      var subtotal = 0, unpriced = false;
       entries.forEach(function (entry) {
-        var line = el("div", "cart-line"), info = el("div"), controls = el("div", "qty-controls");
-        info.appendChild(el("strong", "", entry.product.name)); info.appendChild(el("small", "", entry.product.price || "Prix sur demande"));
-        var minus = el("button", "", "−"); minus.type = "button"; minus.dataset.cartAction = "minus"; minus.dataset.productId = entry.product.id;
-        minus.setAttribute("aria-label", "Retirer une unité de " + entry.product.name); controls.appendChild(minus);
-        controls.appendChild(el("strong", "", entry.quantity));
-        var plus = el("button", "", "+"); plus.type = "button"; plus.dataset.cartAction = "plus"; plus.dataset.productId = entry.product.id;
-        plus.setAttribute("aria-label", "Ajouter une unité de " + entry.product.name); controls.appendChild(plus);
-        var remove = el("button", "icon-button", "×"); remove.type = "button"; remove.dataset.cartAction = "remove"; remove.dataset.productId = entry.product.id;
-        remove.setAttribute("aria-label", "Retirer " + entry.product.name + " du panier");
+        var product = entry.product, quantity = Math.min(99, Math.max(1, entry.quantity));
+        cart[product.id] = quantity;
+        var price = cartPriceValue(product);
+        if (price === null) unpriced = true; else subtotal += price * quantity;
+        var line = el("div", "cart-line"), info = el("div", "cart-line-info"), controls = el("div", "qty-controls");
+        if (product.image && safeUrl(product.image)) {
+          var thumb = el("img", "cart-product-thumb"); setImage(thumb, product.image, product.name || "Produit"); thumb.loading = "lazy"; line.appendChild(thumb);
+        } else line.appendChild(el("span", "cart-product-thumb cart-product-thumb-fallback", String(product.name || "P").trim().charAt(0).toUpperCase()));
+        info.appendChild(el("strong", "", product.name));
+        info.appendChild(el("small", "", product.price || "Prix à confirmer"));
+        if (price !== null) info.appendChild(el("small", "cart-line-total", "Sous-total : " + cartMoney(price * quantity)));
+        var minus = el("button", "qty-button", "−"); minus.type = "button"; minus.dataset.cartAction = "minus"; minus.dataset.productId = product.id;
+        minus.setAttribute("aria-label", "Retirer une unité de " + product.name); minus.disabled = quantity <= 1; controls.appendChild(minus);
+        var qty = el("strong", "qty-value", quantity); qty.setAttribute("aria-label", "Quantité"); controls.appendChild(qty);
+        var plus = el("button", "qty-button", "+"); plus.type = "button"; plus.dataset.cartAction = "plus"; plus.dataset.productId = product.id;
+        plus.setAttribute("aria-label", "Ajouter une unité de " + product.name); plus.disabled = quantity >= 99; controls.appendChild(plus);
+        var remove = el("button", "icon-button cart-remove", "×"); remove.type = "button"; remove.dataset.cartAction = "remove"; remove.dataset.productId = product.id;
+        remove.setAttribute("aria-label", "Retirer " + product.name + " du panier");
         line.appendChild(info); line.appendChild(controls); line.appendChild(remove); cartLines.appendChild(line);
       });
-      if (!entries.length) cartLines.appendChild(el("p", "empty-products", "Ton panier est vide. Ajoute un article pour préparer ta commande."));
-      cartCount.textContent = String(cartItemCount()); byId("checkoutBtn").disabled = entries.length === 0;
-      byId("cartSummary").textContent = entries.length ? "Les prix et la disponibilité sont confirmés par le vendeur avant validation. La commande sera transmise par WhatsApp." : "Le panier est conservé dans ce navigateur.";
+      if (!entries.length) cartLines.appendChild(el("p", "empty-products cart-empty", "Ton panier est vide. Ajoute un article pour préparer ta commande."));
+      cartCount.textContent = String(cartItemCount());
+      byId("openCart").setAttribute("aria-label", "Ouvrir le panier (" + cartItemCount() + " article(s))");
+      byId("checkoutBtn").disabled = entries.length === 0;
+      byId("clearCartBtn").disabled = entries.length === 0;
+      var subtotal = byId("cartSubtotal");
+      if (subtotal) subtotal.textContent = entries.length ? (unpriced ? "À confirmer" : cartMoney(subtotal = entries.reduce(function (sum, entry) { var value = cartPriceValue(entry.product); return sum + (value === null ? 0 : value * entry.quantity); }, 0))) : cartMoney(0);
+      var note = byId("cartTotalsNote");
+      if (note) note.textContent = !entries.length
+        ? "Le panier est conservé sur cet appareil."
+        : (unpriced ? "Le sous-total exclut les articles sans prix affiché. Le vendeur confirmera le montant final." : "Sous-total indicatif, hors livraison. Le vendeur confirmera le prix et la disponibilité.");
+      byId("cartSummary").textContent = entries.length ? "Vérifie tes articles puis renseigne ton nom et ton téléphone pour envoyer la commande." : "Ajoute des produits avant de poursuivre.";
       persistCart();
     }
     function addProduct(id) {
       if (!productById(id)) return;
-      cart[id] = (Number(cart[id]) || 0) + 1; renderCart(); announce("Article ajouté au panier.");
+      if ((Number(cart[id]) || 0) >= 99) return announce("La quantité maximale est de 99 unités par article.");
+      cart[id] = (Number(cart[id]) || 0) + 1;
+      renderCart();
+      announce("Article ajouté au panier.");
     }
     async function checkout() {
       var entries = Object.keys(cart).map(function (id) {
