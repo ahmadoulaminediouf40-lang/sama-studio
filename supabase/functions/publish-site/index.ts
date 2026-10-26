@@ -198,13 +198,17 @@ Deno.serve(async (req: Request) => {
   if (!isOrgAdmin && !isPlatformAdmin) {
     return reply(403, { error: "Seul le propriétaire, l’administrateur ou un gestionnaire SAMA Studio autorisé peut publier." });
   }
-  if (!site.submitted_at || site.review_status !== "approved") {
-    return reply(409, { error: "Ce site doit d’abord être envoyé et approuvé par SAMA Studio avant sa publication." });
-  }
-  const { data: organization } = await userDb.from("organizations")
-    .select("account_status").eq("id", site.organization_id).maybeSingle();
-  if (!isPlatformAdmin && organization?.account_status !== "active") {
-    return reply(403, { error: "Le compte doit être activé par SAMA Studio avant la publication." });
+  // Self-service publishing: owners/admins can publish without manual content review
+  // while their workspace is active and their trial/subscription remains valid.
+  const { data: organization, error: organizationError } = await userDb.from("organizations")
+    .select("account_status,subscription_status,trial_ends_at").eq("id", site.organization_id).maybeSingle();
+  if (organizationError) return reply(500, { error: "Impossible de vérifier l’état de l’espace entreprise." });
+  const trialValid = organization?.subscription_status === "trial"
+    && Boolean(organization?.trial_ends_at)
+    && new Date(organization.trial_ends_at).getTime() > Date.now();
+  const subscriptionValid = organization?.subscription_status === "active" || trialValid;
+  if (!isPlatformAdmin && (organization?.account_status !== "active" || !subscriptionValid)) {
+    return reply(403, { error: "La période d’essai ou l’abonnement est terminé. Active une formule pour publier ce site." });
   }
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
 
