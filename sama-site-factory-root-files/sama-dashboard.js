@@ -123,7 +123,7 @@ async function reloadReviewQueue(){
  if(noticeResult.error)throw noticeResult.error;
  const sites=siteResult.data||[],notifications=noticeResult.data||[];
  const orgIds=[...new Set(sites.map(s=>s.organization_id))],siteIds=[...new Set(sites.map(s=>s.id))];
- let organizations=[],products=[];
+ let organizations=[],products=[],profiles=[];
  if(orgIds.length){
   const result=await state.supabase.from("organizations").select("id,name,slug,subscription_plan,subscription_status,account_status,owner_id").in("id",orgIds);
   if(result.error)throw result.error;organizations=result.data||[];
@@ -132,12 +132,21 @@ async function reloadReviewQueue(){
   const result=await state.supabase.from("products").select("id,site_id,organization_id,name,category,price,price_label,is_demo,is_active,image_url").in("site_id",siteIds).order("name",{ascending:true});
   if(result.error)throw result.error;products=result.data||[];
  }
+ const contactIds=[...new Set(sites.flatMap(site=>[site.created_by,organizations.find(org=>org.id===site.organization_id)?.owner_id]).filter(Boolean))];
+ if(contactIds.length){
+  const result=await state.supabase.from("profiles").select("id,email,full_name").in("id",contactIds);
+  if(result.error)throw result.error;profiles=result.data||[];
+ }
  state.reviewProducts=products;
- state.reviewSites=sites.map(site=>({
-  ...site,
-  organization:organizations.find(org=>org.id===site.organization_id)||null,
-  products:products.filter(product=>product.site_id===site.id)
- }));
+ state.reviewSites=sites.map(site=>{
+  const org=organizations.find(item=>item.id===site.organization_id)||null;
+  return {
+   ...site,
+   organization:org,
+   contact:profiles.find(profile=>profile.id===site.created_by)||profiles.find(profile=>profile.id===org?.owner_id)||null,
+   products:products.filter(product=>product.site_id===site.id)
+  };
+ });
  state.reviewNotifications=notifications;
  $("#reviewNavCount").textContent=String(state.reviewSites.filter(site=>site.review_status==="pending").length+notifications.length);
  renderReviewRequests();
@@ -172,7 +181,7 @@ function renderReviewRequests(){
  const table=createTable(["Entreprise / site","Catalogue","Formule / compte","Envoyé le","État","Action"]),tbody=$("tbody",table);
  items.forEach(site=>{
   const row=node("tr"),siteCell=node("td"),productsCell=node("td"),accountCell=node("td"),dateCell=node("td","",formatDate(site.submitted_at)),statusCell=node("td"),actions=node("td","action-cell");
-  append(siteCell,node("strong","",site.organization?.name||"Entreprise"),node("small","",site.name+" · "+site.slug),node("small","",(site.template_id||"modèle")+" · "+site.products.length+" produits"));
+  append(siteCell,node("strong","",site.organization?.name||"Entreprise"),node("small","",site.name+" · "+site.slug),node("small","",(site.template_id||"modèle")+" · "+site.products.length+" produits"));if(site.contact){siteCell.appendChild(node("small","",(site.contact.full_name||"Contact")+" · "+(site.contact.email||"e-mail non renseigné")));}
   const verified=site.products.filter(product=>product.is_active&&!product.is_demo);
   const demos=site.products.filter(product=>product.is_demo).length;
   if(site.products.length){
