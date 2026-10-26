@@ -144,3 +144,7 @@
  .studio-layout[data-studio-stage="customize"]>.studio-main,.studio-layout[data-studio-stage="products"]>.studio-main{grid-row:1}
  .studio-layout[data-studio-stage="customize"]>.configuration-panel,.studio-layout[data-studio-stage="products"]>.configuration-panel{grid-row:2}
 }
+
+
+/* Contextual guidance: each model explains its real business use and private tools. */
+.template-gallery-card .gallery-card-context{display:block;margin-top:8px;color:#51677b;font-size:11px;line-height:1.45;font-weight:500}.selected-template-context{display:grid;gap:5px;margin:12px 0 18px;padding:13px 14px;border:1px solid #dce6ee;border-radius:12px;background:#f7fafc;color:#253d52;font-size:12px;line-height:1.5}.selected-template-context strong{margin-top:3px;font-size:11px;letter-spacing:.02em;color:#1c4866}.selected-template-context p{margin:0 0 4px;color:#53697c}.template-gallery-card{height:auto;min-height:180px}
