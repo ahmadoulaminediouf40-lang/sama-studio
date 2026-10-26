@@ -96,8 +96,8 @@
       '<div id="siteProductsEditor" class="site-products-editor"></div>' +
       '<button id="addSiteProductBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter un produit</button></details>' +
       '<details class="editor-section" open><summary><span>Pages et navigation</span><small id="customPageCount">0 page</small></summary>' +
-      '<p class="release-help">Ajoutez des pages ou sections navigables : présentation, services, FAQ, livraison ou conditions.</p>' +
-      '<div id="sitePagesEditor" class="site-pages-editor"></div><button id="addSitePageBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter une page</button></details>' +
+      '<p class="release-help">Les pages créées seront accessibles depuis le menu du site. Ouvrez l’éditeur avancé pour construire une vraie page, puis choisissez si elle apparaît dans le menu.</p>' +
+      '<div id="sitePagesEditor" class="site-pages-editor"></div><button id="openPageEditorBtn" class="btn btn-primary btn-full" type="button">✎ Ouvrir l’éditeur de pages</button><button id="addSitePageBtn" class="btn btn-secondary btn-full" type="button">＋ Créer une page</button></details>' +
       '<details class="editor-section"><summary><span>Médiathèque</span><small id="mediaCount">0 image</small></summary>' +
       '<p class="release-help">Importez des images et réutilisez-les comme logo, bannière ou image du premier produit. PNG, JPEG, WebP ou GIF, 150 Ko maximum par image.</p>' +
       '<label class="media-upload-label">Importer des images<input id="mediaUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>' +
@@ -111,6 +111,13 @@
       '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>';
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
+    var pageEditorStyles = create("style");
+    pageEditorStyles.textContent = '.page-workspace{position:fixed;inset:0;z-index:1000;background:#f3f6fa;display:none;grid-template-rows:auto 1fr;color:#14263b}.page-workspace.is-open{display:grid}.page-workspace-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 22px;background:#fff;border-bottom:1px solid #dce5ed}.page-workspace-head h1{font-size:20px;margin:0}.page-workspace-head p{margin:4px 0 0;color:#64778a;font-size:12px}.page-workspace-body{display:grid;grid-template-columns:minmax(250px,320px) minmax(0,1fr);min-height:0;overflow:auto}.page-workspace-settings{padding:22px;background:#fff;border-right:1px solid #dce5ed;overflow:auto}.page-workspace-settings label{display:grid;gap:6px;margin-bottom:15px;font-weight:700;font-size:12px}.page-workspace-settings input,.page-workspace-settings textarea{width:100%;padding:10px;border:1px solid #cad6e1;border-radius:8px;font:inherit}.page-workspace-canvas{padding:24px;min-width:0}.page-editor-toolbar{display:flex;flex-wrap:wrap;gap:7px;padding:10px;background:#fff;border:1px solid #d8e2eb;border-bottom:0;border-radius:12px 12px 0 0}.page-editor-toolbar button{border:1px solid #d8e2eb;border-radius:7px;background:#f8fafc;padding:7px 10px;font-weight:700}.page-rich-content{min-height:50vh;padding:22px;background:#fff;border:1px solid #d8e2eb;border-radius:0 0 12px 12px;outline:none;line-height:1.7;overflow-wrap:anywhere}.page-rich-content:focus{box-shadow:0 0 0 3px #d7e8f7}.page-editor-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.page-editor-hint{font-size:12px;color:#6b7e90;line-height:1.5}@media(max-width:720px){.page-workspace-body{grid-template-columns:1fr}.page-workspace-settings{border-right:0;border-bottom:1px solid #dce5ed}.page-workspace-head{align-items:flex-start;flex-direction:column}.page-workspace-head .btn{width:100%}}';
+    document.head.appendChild(pageEditorStyles);
+    var workspace = create("section", "page-workspace");
+    workspace.id = "pageEditorWorkspace"; workspace.setAttribute("aria-label", "Éditeur avancé de pages");
+    workspace.innerHTML = '<header class="page-workspace-head"><div><h1>Éditeur de pages</h1><p>Construisez votre page indépendamment du modèle principal.</p></div><div class="page-editor-actions"><button id="closePageEditorBtn" class="btn btn-secondary" type="button">← Retour au site</button><button id="savePageEditorBtn" class="btn btn-primary" type="button">Enregistrer la page</button></div></header><div class="page-workspace-body"><aside class="page-workspace-settings"><label>Nom de la page<input id="pageEditorTitle" maxlength="90" placeholder="Ex. Nos services"></label><label>Adresse de la page<input id="pageEditorSlug" maxlength="90" placeholder="nos-services"></label><label>Résumé de la page<textarea id="pageEditorDescription" rows="4" maxlength="170" placeholder="Présentez cette page en une phrase."></textarea></label><label><span><input id="pageEditorVisible" type="checkbox" checked> Afficher cette page dans le menu</span></label><p class="page-editor-hint">Le modèle conserve son design. Cet éditeur sert à créer le contenu de pages supplémentaires, sans modifier la structure de l’accueil.</p></aside><div class="page-workspace-canvas"><div class="page-editor-toolbar" role="toolbar" aria-label="Mise en forme du contenu"><button type="button" data-page-command="bold"><strong>Gras</strong></button><button type="button" data-page-command="italic"><em>Italique</em></button><button type="button" data-page-command="underline"><u>Souligné</u></button><button type="button" data-page-command="formatBlock" data-page-value="h2">Titre</button><button type="button" data-page-command="formatBlock" data-page-value="p">Paragraphe</button><button type="button" data-page-command="insertUnorderedList">• Liste</button><button type="button" data-page-command="insertOrderedList">1. Liste</button><button type="button" id="pageInsertLinkBtn">Ajouter un lien</button></div><div id="pageRichContent" class="page-rich-content" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Commencez à écrire le contenu de votre page…"><p>Commencez à écrire le contenu de votre page…</p></div><div class="page-editor-actions"><button id="pageEditorPreviewBtn" class="btn btn-secondary" type="button">Prévisualiser dans le site</button><button id="savePageEditorBottomBtn" class="btn btn-primary" type="button">Enregistrer la page</button></div></div></div>';
+    document.body.appendChild(workspace);
     releasePanel = panel; productEditor = $("#siteProductsEditor", panel);
     pageEditor = $("#sitePagesEditor", panel); mediaInput = $("#mediaUploadInput", panel); mediaGrid = $("#siteMediaGrid", panel); revisionList = $("#siteRevisionList", panel);
   }
@@ -200,6 +207,32 @@
   function safePageSlug(value) {
     return slug(value).slice(0, 55) || "page";
   }
+  function sanitizePageHtml(input) {
+    var template = document.createElement("template"); template.innerHTML = String(input || "").slice(0, 20000);
+    var allowed = { P:1, BR:1, STRONG:1, B:1, EM:1, I:1, U:1, H2:1, H3:1, UL:1, OL:1, LI:1, A:1, BLOCKQUOTE:1, IMG:1, DIV:1 };
+    function clean(node) { Array.from(node.children || []).forEach(function (child) {
+      if (!allowed[child.tagName]) { child.replaceWith(document.createTextNode(child.textContent || "")); return; }
+      var href = child.getAttribute("href"), src = child.getAttribute("src"); Array.from(child.attributes).forEach(function (attr) { child.removeAttribute(attr.name); });
+      if (child.tagName === "A" && href && /^(https?:|mailto:|tel:)/i.test(href)) { child.setAttribute("href", href); child.setAttribute("rel", "noopener noreferrer"); }
+      if (child.tagName === "IMG") { if (src && (/^https?:\/\//i.test(src) || /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(src))) { child.setAttribute("src", src); child.setAttribute("alt", "Illustration de la page"); } else { child.remove(); return; } }
+      clean(child);
+    }); }
+    clean(template.content); return template.innerHTML;
+  }
+  var editingPageId = null;
+  function openPageWorkspace(page) {
+    var workspace = $("#pageEditorWorkspace"); if (!workspace) return;
+    if (!page) { if (state.pages.length >= 12) return announce("Tu peux créer jusqu’à 12 pages."); var title = "Nouvelle page " + (state.pages.length + 1), pageSlug = safePageSlug(title); page = { id:"custom-" + pageSlug + "-" + Date.now().toString(36), slug:pageSlug, title:title, description:"", content:"<p>Présentez ici les informations utiles à vos visiteurs.</p>", visible:true }; state.pages.push(page); }
+    editingPageId = page.id; $("#pageEditorTitle").value = page.title || ""; $("#pageEditorSlug").value = page.slug || safePageSlug(page.title); $("#pageEditorDescription").value = page.description || ""; $("#pageEditorVisible").checked = page.visible !== false; $("#pageRichContent").innerHTML = sanitizePageHtml(page.content || "");
+    workspace.classList.add("is-open"); document.body.style.overflow = "hidden"; $("#pageEditorTitle").focus();
+  }
+  function closePageWorkspace() { var workspace = $("#pageEditorWorkspace"); if (workspace) workspace.classList.remove("is-open"); document.body.style.overflow = ""; editingPageId = null; }
+  function savePageWorkspace() {
+    var page = state.pages.find(function (item) { return item.id === editingPageId; }); if (!page) return announce("Crée ou sélectionne une page avant de l’enregistrer.");
+    var title = $("#pageEditorTitle").value.trim(); if (!title) { announce("Donne un nom à cette page avant de l’enregistrer."); $("#pageEditorTitle").focus(); return; }
+    page.title = title.slice(0,90); page.slug = safePageSlug($("#pageEditorSlug").value || title); page.description = $("#pageEditorDescription").value.trim().slice(0,170); page.content = sanitizePageHtml($("#pageRichContent").innerHTML); page.visible = $("#pageEditorVisible").checked;
+    renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft(); closePageWorkspace(); announce("Page enregistrée. Elle s’ouvrira depuis le menu du site.");
+  }
   function pageInput(labelText, key, value, index, multiline) {
     var label = create("label", "product-field", labelText), input;
     if (multiline) { input = create("textarea"); input.rows = 4; input.maxLength = 5000; }
@@ -220,15 +253,14 @@
     pageEditor.replaceChildren();
     state.pages.forEach(function (page, index) {
       var card = create("div", "product-edit-card page-edit-card"), top = create("div", "product-edit-card-top");
-      top.appendChild(create("strong", "", "Page " + String(index + 1).padStart(2, "0")));
+      top.appendChild(create("strong", "", page.title || "Page sans titre"));
       var remove = create("button", "product-remove-button", "Supprimer");
       remove.type = "button"; remove.addEventListener("click", function () {
         state.pages.splice(index, 1); renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft();
       });
       top.appendChild(remove); card.appendChild(top);
-      card.appendChild(pageInput("Titre de la page", "title", page.title, index, false));
-      card.appendChild(pageInput("Description de la page", "description", page.description, index, false));
-      card.appendChild(pageInput("Contenu", "content", page.content, index, true));
+      var edit = create("button", "media-use-button", "Modifier dans l’éditeur avancé"); edit.type = "button"; edit.addEventListener("click", function () { openPageWorkspace(page); }); card.appendChild(edit);
+      card.appendChild(create("p", "release-help", "Adresse : /?page=" + safePageSlug(page.slug || page.title)));
       var visibleLabel = create("label", "page-visible-toggle"), visible = create("input");
       visible.type = "checkbox"; visible.checked = page.visible !== false;
       visible.addEventListener("change", function () { page.visible = visible.checked; syncPreviewProducts(); persistReleaseDraft(); });
@@ -771,7 +803,7 @@
       (options.previewMode ? '<div class="preview-mode-bar"><div><strong>APERÇU DU SITE · MODE ESSAI</strong><small>Le site est interactif, mais il n’est pas publié.</small></div><a href="' + escapeHtml(String(options.returnUrl || "site-studio.html")) + '">← Retour à la configuration</a></div>' : ''));
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
     var customPages = Array.isArray(data.pages) ? data.pages.filter(function (page) { return page.visible !== false && page.title; }) : [];
-    var customNav = customPages.map(function (page, index) { return '<a href="#' + escapeHtml("custom-" + safePageSlug(page.slug || page.title || ("page-" + index))) + '">' + escapeHtml(page.title) + '</a>'; }).join("");
+    var customNav = customPages.map(function (page, index) { return '<a href="?page=' + encodeURIComponent(safePageSlug(page.slug || page.title || ("page-" + index))) + '" data-custom-page-link>' + escapeHtml(page.title) + '</a>'; }).join("");
     page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a>' + customNav + '<a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
     page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
     page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Informations et prix visibles</div><div class="trust-item"><span class="trust-icon">↗</span> Commande simple via WhatsApp</div><div class="trust-item"><span class="trust-icon">◎</span> Contact direct avec le vendeur</div></div></section>');
@@ -779,14 +811,14 @@
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
     customPages.forEach(function (customPage, index) {
       var customId = "custom-" + safePageSlug(customPage.slug || customPage.title || ("page-" + index));
-      var body = escapeHtml(String(customPage.content || "")).replace(/\r?\n/g, "<br>");
+      var body = sanitizePageHtml(customPage.content || "");
       page.push('<section class="section custom-content-section" id="' + escapeHtml(customId) + '" aria-label="' + escapeHtml(customPage.title) + '" data-page-description="' + escapeHtml(customPage.description || "") + '"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Informations</span><h2>' + escapeHtml(customPage.title) + '</h2></div><p>' + escapeHtml(customPage.description || "") + '</p></div><div class="custom-page-body">' + body + '</div></div></section>');
     });
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
     page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
     page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
     page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script>' +
-      (options.previewMode ? '<script>document.addEventListener("click",function(event){var link=event.target.closest("a[href^=\'#\']");if(!link)return;var target=document.querySelector(link.getAttribute("href"));if(target){event.preventDefault();target.scrollIntoView({behavior:"smooth",block:"start"});}});</script>' : '') +
+      '<script>(function(){function showPage(){var params=new URLSearchParams(location.search),slug=params.get("page"),main=document.querySelector("main"),sections=Array.from(document.querySelectorAll(".custom-content-section")),clean=String(slug||"").toLowerCase().replace(/[^a-z0-9-]/g,""),chosen=sections.find(function(section){return section.id==="custom-"+clean});if(!slug||!chosen){sections.forEach(function(section){section.hidden=false});Array.from(main.children).forEach(function(node){node.hidden=false});var old=document.getElementById("pageHomeLink");if(old)old.remove();return}Array.from(main.children).forEach(function(node){node.hidden=node!==chosen});sections.forEach(function(section){section.hidden=section!==chosen});var old=document.getElementById("pageHomeLink");if(old)old.remove();var nav=document.querySelector(".main-nav"),home=document.createElement("a");home.id="pageHomeLink";home.href=location.pathname;home.textContent="Accueil";if(nav)nav.insertBefore(home,nav.firstChild);var h=chosen.querySelector("h2"),brand=document.getElementById("siteBusinessName");document.title=(h?h.textContent:"Page")+" | "+(brand?brand.textContent:"");window.scrollTo(0,0)}window.addEventListener("popstate",showPage);document.addEventListener("click",function(event){var link=event.target.closest("a[data-custom-page-link]");if(!link)return;event.preventDefault();history.pushState({},"",link.getAttribute("href"));showPage()});showPage()})();</script>' +
       '</body></html>');
     return page.join("\n");
   }
@@ -916,12 +948,14 @@
     if (!template) { announce("Le registre des modèles est introuvable."); return; }
     state.templateId = template.id; state.products = cloneProducts(template);
     restoreDraft(); renderProductEditor(); renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory(); syncPreviewProducts();
-    $("#addSitePageBtn").addEventListener("click", function () {
-      if (state.pages.length >= 12) return announce("Tu peux ajouter jusqu’à 12 pages/sections.");
-      var title = "Nouvelle page " + (state.pages.length + 1);
-      state.pages.push({ id: "custom-" + safePageSlug(title), slug: safePageSlug(title), title: title, description: "", content: "Présentez ici les informations utiles à vos visiteurs.", visible: true });
-      renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Page ajoutée.");
-    });
+    $("#addSitePageBtn").addEventListener("click", function () { openPageWorkspace(null); });
+    $("#openPageEditorBtn").addEventListener("click", function () { openPageWorkspace(state.pages[0] || null); });
+    $("#closePageEditorBtn").addEventListener("click", closePageWorkspace);
+    $("#savePageEditorBtn").addEventListener("click", savePageWorkspace);
+    $("#savePageEditorBottomBtn").addEventListener("click", savePageWorkspace);
+    $("#pageEditorPreviewBtn").addEventListener("click", function () { savePageWorkspace(); if (state.pages.length) announce("La page est actualisée dans l’aperçu du modèle."); });
+    $(".page-editor-toolbar").addEventListener("click", function (event) { var button = event.target.closest("button[data-page-command]"); if (!button) return; $("#pageRichContent").focus(); document.execCommand(button.dataset.pageCommand, false, button.dataset.pageValue || null); });
+    $("#pageInsertLinkBtn").addEventListener("click", function () { var url = window.prompt("Adresse du lien (https://…, mailto: ou tel:)"); if (!url || !/^(https?:\/\/|mailto:|tel:)/i.test(url.trim())) return; $("#pageRichContent").focus(); document.execCommand("createLink", false, url.trim()); });
     $("#createRevisionBtn").addEventListener("click", function () { revisionSnapshot("Version manuelle"); });
     if (mediaInput) mediaInput.addEventListener("change", handleMediaUpload);
     if (field("heroImageUrl")) {
