@@ -143,6 +143,21 @@ async function markPublished(admin: any, siteId: string, html: string, projectNa
 }
 
 // Static multi-page publishing is handled in this deployment function.
+function escapePageText(value: unknown): string {
+  return String(value ?? "").replace(/[&<>\"']/g, (char) => {
+    const entities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
+    return entities[char] || char;
+  });
+}
+function renderSitePage(page: Record<string, any>, siteName: string, pages: Record<string, any>[]): string {
+  const title = escapePageText(page.seo_title || page.title || siteName);
+  const description = escapePageText(page.seo_description || "");
+  const value = page.content;
+  const raw = typeof value === "string" ? value : String(value?.body ?? value?.content ?? "");
+  const content = escapePageText(raw).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>\n");
+  const links = pages.filter((item) => item.show_in_menu !== false && item.slug !== "home").map((item) => '<a href="/' + encodeURIComponent(String(item.slug)) + '/">' + escapePageText(item.title) + '</a>').join(" ");
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title>' + (description ? '<meta name="description" content="' + description + '">' : '') + '<style>body{font:16px/1.7 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 24px;color:#17231b}nav{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0}a{color:#286340}main{margin-top:48px}</style></head><body><header><a href="/">' + escapePageText(siteName) + '</a><nav aria-label="Navigation"><a href="/">Accueil</a>' + links + '</nav></header><main><h1>' + escapePageText(page.title || siteName) + '</h1><article>' + content + '</article></main></body></html>';
+}
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
