@@ -31,7 +31,7 @@ create table if not exists public.sites (
  template_id text not null default 'distribution',
  status text not null default 'draft' check(status in ('draft','published','paused')),
  html_content text not null check(char_length(html_content)<=3000000),
- netlify_site_id text, published_url text,
+ cloudflare_project_name text, cloudflare_deployment_id text, published_url text,
  created_by uuid not null references auth.users(id) on delete restrict,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(), published_at timestamptz,
  unique(id,organization_id)
