@@ -109,7 +109,7 @@
       var i = Number(input.dataset.productIndex), prop = input.dataset.productKey;
       if (!state.products[i]) return;
       state.products[i][prop] = input.value;
-      state.products[i].customized = true;
+      if (prop !== "stockQuantity") state.products[i].customized = true;
       var confirmation = field("releaseChecklistConfirmed"); if (confirmation) confirmation.checked = false;
       syncPreviewProducts(); persistReleaseDraft();
     });
