@@ -356,7 +356,7 @@
         checkoutButton.disabled = true;
         checkoutButton.textContent = "Enregistrement…";
         try {
-          var result = await fetch(String(remote.apiUrl).replace(/\\/$/, "") + "/functions/v1/create-storefront-order", {
+          var result = await fetch(String(remote.apiUrl).replace(/\/$/, "") + "/functions/v1/create-storefront-order", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
