@@ -1,48 +1,53 @@
-# Sama Studio — premier prototype du système multi-templates
+# Sama Studio — configurateur et générateur de sites clients
 
-## Ce qui est inclus
+Sama Studio permet de sélectionner un modèle parmi dix secteurs, personnaliser la marque et le catalogue, prévisualiser le rendu sur ordinateur et mobile, puis exporter un site client autonome en HTML.
 
-- `site-studio.html` : interface de sélection des modèles et personnalisation de la fiche client.
-- `site-studio.css` : interface du configurateur et styles propres à chaque maquette.
-- `site-templates.js` : registre central unique des dix activités et leurs contenus de démonstration.
-- `site-studio.js` : rendu des maquettes, bascule bureau/mobile, aperçu interactif, sauvegarde locale et export JSON.
+## Fichiers
+- `site-studio.html` : interface du studio.
+- `site-studio.css` : styles du configurateur et des dix aperçus.
+- `site-release.css` : styles du panneau d'édition et d'export.
+- `site-templates.js` : registre central des dix modèles et contenus de démonstration.
+- `site-studio.js` : configurateur et aperçu.
+- `site-publisher.js` : éditeur du catalogue, sauvegarde locale, export HTML autonome et JSON.
+- `validate-release.mjs` : contrôle statique des fichiers et capacités principales.
+- `.github/workflows/validate-studio.yml` : validation de syntaxe automatisée.
 
-## Les dix modèles
+## Les dix univers
+Commerce et distribution, mode et accessoires, beauté et cosmétiques, électronique, maison et ameublement, épicerie et produits locaux, restaurant et fast-food, boulangerie et traiteur, entreprises de services, immobilier.
 
-1. Commerce et distribution
-2. Mode et accessoires
-3. Beauté et cosmétiques
-4. Électronique et accessoires
-5. Maison et ameublement
-6. Épicerie et produits locaux
-7. Restaurant et fast-food
-8. Boulangerie et traiteur
-9. Entreprises de services
-10. Immobilier
+## Tester et générer un site
+1. Garder les fichiers dans le même dossier.
+2. Ouvrir `site-studio.html` dans un navigateur récent.
+3. Sélectionner un modèle et saisir l'identité, les coordonnées, les couleurs et les informations de livraison.
+4. Dans le panneau « Site client prêt à livrer », modifier les produits d'exemple, ajouter ou supprimer des produits.
+5. Utiliser « Prévisualiser le site client » puis « Télécharger le site client (.html) ».
+6. Ouvrir le HTML téléchargé dans un navigateur pour tester le panier et le parcours de commande.
 
-Les modèles partagent une interface et un registre communs, mais disposent de mises en page, de couleurs et de sections différentes. Les produits et textes visibles sont fictifs, pour la démonstration.
+Une connexion Internet est nécessaire pour les images distantes par défaut. Les URLs d'images d'un client doivent être publiques, stables et utilisées avec les droits appropriés.
 
-## Tester
+## Fonctionnalités du site exporté
+- Site responsive sur ordinateur et téléphone.
+- Identité, couleurs, description, logo distant, coordonnées, horaires, livraison et réseaux sociaux configurables.
+- Catalogue, recherche et filtre par catégorie.
+- Panier avec ajout, retrait et gestion des quantités.
+- Panier mémorisé localement dans le navigateur du visiteur.
+- Préparation de la commande dans WhatsApp avec les produits et quantités.
+- Liens téléphone et e-mail, métadonnées de base et partage social.
+- HTML autonome, sans framework JavaScript tiers requis à l'exécution.
 
-Ouvrir `site-studio.html` dans un navigateur. Les quatre fichiers doivent rester dans le même dossier. Les photographies des maquettes sont chargées depuis Unsplash, donc leur affichage nécessite une connexion Internet.
+## Limites à annoncer honnêtement au client
+- Les produits et textes initiaux sont fictifs ; vérifier les prix, stocks, informations et droits d'usage des images avant publication.
+- Le panier ne réserve pas de stock et ne synchronise pas les données entre appareils.
+- La commande est transmise par WhatsApp. Il n'y a pas de paiement en ligne, compte client, facturation, tableau de bord ou suivi serveur de commande.
+- Le catalogue livré est figé dans le HTML : le modifier nécessite de regénérer ou éditer le fichier.
+- Le domaine, l'hébergement, l'e-mail professionnel, l'analytics et la publication automatique ne sont pas provisionnés.
+- Les brouillons du studio restent dans le navigateur courant.
 
-## Ajouter au dépôt SAMA-PACK
+## Déploiement statique
+Le HTML généré peut être publié sur un hébergeur statique ou intégré à un hébergement client. Avant publication, tester mobile, navigation, images, numéro WhatsApp, coordonnées et prix.
 
-1. Travailler sur une branche Git distincte, jamais directement sur la branche de production.
-2. Copier les quatre fichiers à la racine du projet (au même niveau que `index.html`, `app.js` et `styles.css`).
-3. Prévisualiser `site-studio.html` dans un environnement de test.
-4. Ne pas annoncer cette page comme un service client prêt pour la production et ne pas la publier sans contrôle d'accès si elle est destinée à un usage interne.
+## Validation
+Dans ce dossier, exécuter `node --check site-studio.js`, `node --check site-templates.js`, `node --check site-publisher.js`, `node --check validate-release.mjs` et `node validate-release.mjs`. Le workflow GitHub applique ces vérifications.
 
-Le site existant n'a pas été modifié par ces fichiers. Le configurateur est isolé et n'appelle pas Supabase.
-
-## Limites explicites de cette version
-
-- Le bouton d'enregistrement sauvegarde une fiche dans `localStorage` sur le navigateur courant uniquement.
-- L'export JSON produit une configuration de projet, pas un site client publiable.
-- Les boutons visibles dans les aperçus sont simulés : paiement, panier, notifications, commandes, gestion de stock, espace admin, etc. ne sont pas connectés dans ces maquettes.
-- Aucune isolation multi-entreprise (tenant), authentification du studio, création de sous-domaine ou publication automatique n'est implémentée ici.
-- Les données de configuration ne sont pas envoyées à un serveur.
-
-## Prochaine étape technique recommandée
-
-Construire le moteur commun de production dans une branche dédiée : modèle de données multi-entreprise, attribution de chaque utilisateur à une entreprise, politiques RLS Supabase fondées sur l'identité et le tenant, configuration de marque persistée, fonctionnalités activées par type d'activité, puis publication isolée par domaine. Cette étape doit être vérifiée avant d'accueillir de vrais clients.
+## Avant une offre SaaS multi-clients
+Il faudra encore un backend configuré (authentification, organisations/tenant, RLS, rôles), gestion média, sauvegardes et publication isolée. Ne jamais exposer une clé `service_role` dans le navigateur. Cette infrastructure n'est pas incluse dans le générateur HTML autonome.
