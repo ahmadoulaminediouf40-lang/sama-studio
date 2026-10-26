@@ -632,8 +632,6 @@
     $("#studioToast").classList.add("visible");
     const submitButtons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
     submitButtons.forEach(button => { button.disabled = true; button.textContent = "Demande envoyée"; });
-    const { data: adminNotifications } = await state.supabase.from("site_review_notifications")
-      .select("id").eq("recipient_id", state.user.id).limit(0);
     return site;
   }
 
