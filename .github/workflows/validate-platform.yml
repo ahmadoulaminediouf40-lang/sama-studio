@@ -1,0 +1,37 @@
+name: Validate Sama Studio Platform
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "sama-site-factory-root-files/**"
+      - "supabase/**"
+      - ".github/workflows/validate-platform.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "sama-site-factory-root-files/**"
+      - "supabase/**"
+      - ".github/workflows/validate-platform.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sama-site-factory-root-files
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check site-studio.js
+          node --check site-templates.js
+          node --check site-publisher.js
+          node --check sama-dashboard.js
+          node --check validate-platform.mjs
+      - name: Validate required product and backend files
+        run: node validate-platform.mjs
