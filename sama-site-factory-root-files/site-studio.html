@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="Sama Studio — sélection et personnalisation de modèles de sites professionnels.">
+  <title>Sama Studio — Créateur de sites professionnels</title>
+  <link rel="stylesheet" href="site-studio.css">
+</head>
+<body>
+  <div class="studio-app">
+    <header class="studio-header">
+      <a class="studio-brand" href="#top" aria-label="Sama Studio, accueil">
+        <span class="brand-symbol">S</span>
+        <span class="brand-wordmark">SAMA<span>STUDIO</span><small>Sites professionnels</small></span>
+      </a>
+      <div class="header-center"><span class="status-dot"></span> Espace de conception <span class="header-divider"></span><strong>10 modèles disponibles</strong></div>
+      <a class="header-link" href="https://sama-pack.store/" target="_blank" rel="noreferrer">Voir SAMA-PACK <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main id="top" class="studio-layout">
+      <aside class="template-sidebar" aria-label="Modèles disponibles">
+        <div class="sidebar-heading"><span class="eyebrow">BIBLIOTHÈQUE</span><h2>Modèles</h2><p>Un modèle pensé pour chaque activité.</p></div>
+        <label class="template-search-wrap"><span class="sr-only">Rechercher un modèle</span><span aria-hidden="true">⌕</span><input id="templateSearch" type="search" placeholder="Rechercher une activité…" autocomplete="off"></label>
+        <nav id="templateList" class="template-list" aria-label="Choisir un modèle"></nav>
+        <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true">✳</span><p><strong>Une seule base.</strong><br>Des présentations adaptées aux besoins de chaque métier.</p></div>
+      </aside>
+
+      <section class="studio-main" aria-label="Aperçu du site">
+        <div class="page-heading">
+          <div><span class="eyebrow">CONFIGURATEUR DE SITES</span><h1>Choisis un modèle.<br><span>Construis une offre.</span></h1><p>Visualise les dix univers, personnalise les informations du client et exporte sa fiche de projet.</p></div>
+          <div class="project-pill"><span class="project-pill-icon" aria-hidden="true">◈</span><span><strong id="projectCount">Projet de démonstration</strong><small>Configuration locale</small></span></div>
+        </div>
+
+        <div class="preview-toolbar">
+          <div class="preview-current"><span class="preview-kicker">APERÇU SÉLECTIONNÉ</span><strong id="activeTemplateName">Commerce & distribution</strong><span id="activeTemplateSector" class="sector-badge">Commerce</span></div>
+          <div class="preview-controls" role="group" aria-label="Taille de l’aperçu">
+            <button class="device-button active" id="desktopPreviewBtn" type="button" aria-pressed="true"><span aria-hidden="true">▱</span> Bureau</button>
+            <button class="device-button" id="mobilePreviewBtn" type="button" aria-pressed="false"><span aria-hidden="true">▯</span> Mobile</button>
+          </div>
+        </div>
+
+        <div class="preview-stage">
+          <div class="browser-chrome" aria-hidden="true"><span></span><span></span><span></span><div class="browser-address">votre-site.sn</div><span class="lock-symbol">♧</span></div>
+          <div id="storePreview" class="store-preview" aria-live="polite"></div>
+          <div class="preview-watermark"><span class="status-dot"></span> Aperçu de démonstration — contenu fictif</div>
+        </div>
+
+        <section class="all-templates-section" aria-labelledby="allTemplatesTitle">
+          <div class="section-title-row"><div><span class="eyebrow">LES 10 UNIVERS</span><h2 id="allTemplatesTitle">Une vitrine pour chaque métier</h2></div><span id="templateResultCount" class="result-count">10 modèles</span></div>
+          <div id="templateGallery" class="template-gallery"></div>
+        </section>
+      </section>
+
+      <aside class="configuration-panel" aria-label="Personnaliser le projet">
+        <div class="config-top"><div><span class="eyebrow">ÉTAPE 02</span><h2>Personnalisation</h2></div><span class="config-number">02 / 02</span></div>
+        <div class="selected-template-card"><div id="selectedTemplateGlyph" class="selected-template-glyph">CD</div><div><strong id="selectedTemplateTitle">Commerce & distribution</strong><small id="selectedTemplateDescription">Catalogue, panier et commandes.</small></div><button id="resetConfigBtn" class="icon-reset" type="button" title="Réinitialiser la configuration" aria-label="Réinitialiser la configuration">↺</button></div>
+
+        <form id="projectForm" class="project-form">
+          <div class="form-section-label"><span>01</span> Identité de l’entreprise</div>
+          <label>Nom de l’entreprise<input id="businessName" name="businessName" maxlength="70" value="Votre entreprise" required></label>
+          <label>Phrase d’accueil<input id="businessTagline" name="businessTagline" maxlength="110" placeholder="Ex. La qualité, près de chez vous"></label>
+          <div class="two-fields"><label>Ville<input id="businessCity" name="businessCity" maxlength="45" value="Dakar"></label><label>Téléphone<input id="businessPhone" name="businessPhone" type="tel" maxlength="30" placeholder="77 000 00 00"></label></div>
+          <label>Numéro WhatsApp<input id="businessWhatsapp" name="businessWhatsapp" type="tel" maxlength="25" placeholder="221 77 000 00 00"></label>
+
+          <div class="form-section-label"><span>02</span> Direction visuelle</div>
+          <div class="color-picker-row"><label for="brandColor">Couleur principale</label><div class="color-picker-control"><input id="brandColor" name="brandColor" type="color" value="#166534"><code id="brandColorValue">#166534</code></div></div>
+          <label>Adresse du logo <span class="optional-label">facultatif</span><input id="logoUrl" name="logoUrl" type="url" placeholder="https://…"></label>
+
+          <div class="config-note"><span aria-hidden="true">ⓘ</span><p>Les modifications sont visibles dans l’aperçu. Aucun site client n’est publié depuis cet outil pour le moment.</p></div>
+          <button class="btn btn-primary btn-full" type="submit"><span aria-hidden="true">↗</span> Enregistrer la fiche projet</button>
+          <button class="btn btn-secondary btn-full" id="exportConfigBtn" type="button"><span aria-hidden="true">↓</span> Exporter la configuration JSON</button>
+          <button class="text-button" id="copySummaryBtn" type="button">Copier le résumé du projet</button>
+        </form>
+
+        <div class="config-footer"><span class="lock-icon" aria-hidden="true">⌑</span><span>La fiche est enregistrée dans ce navigateur. Elle n’est pas envoyée à un serveur.</span></div>
+      </aside>
+    </main>
+    <div id="studioToast" class="studio-toast" role="status" aria-live="polite"></div>
+    <footer class="studio-footer"><span>© <span id="currentYear"></span> Sama Studio</span><span>Prototype interne de sélection de modèles · Version 0.1</span></footer>
+  </div>
+  <script src="site-templates.js"></script>
+  <script src="site-studio.js"></script>
+</body>
+</html>
