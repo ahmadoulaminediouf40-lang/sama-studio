@@ -157,7 +157,7 @@ async function savePage(event) {
       result = await supabase.from("site_pages").insert(payload).select("id").single();
     }
     if (result.error) throw result.error;
-    announce("Page enregistrée en brouillon. La publication publique sera disponible après connexion au moteur de publication.");
+    announce("Page enregistrée en brouillon. Publie cette page puis republie le site pour la rendre accessible sur son URL.");
     clearPageForm(); await loadPages();
   } catch (error) { announce(friendly(error), true); }
   finally { busy(ui.save, false); }
@@ -166,7 +166,7 @@ async function setPageStatus(page, status) {
   const result = await supabase.from("site_pages").update({ status, published_at: status === "published" ? new Date().toISOString() : null })
     .eq("id", page.id).eq("site_id", ui.site.value);
   if (result.error) return announce(friendly(result.error), true);
-  announce(status === "published" ? "Page marquée comme publiée dans le CMS. Le routage public doit encore être connecté." : "Page remise en brouillon.");
+  announce(status === "published" ? "Page publiée dans le CMS. Republie le site pour mettre à jour les pages accessibles au public." : "Page remise en brouillon.");
   await loadPages();
 }
 async function deletePage(page) {
