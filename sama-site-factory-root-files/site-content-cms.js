@@ -8,7 +8,7 @@ const $ = (s, root = document) => root.querySelector(s);
 const ui = {
   site: $("#cmsSiteSelect"), status: $("#cmsStatus"), form: $("#cmsPageForm"), list: $("#cmsPageList"),
   title: $("#cmsPageTitle"), slug: $("#cmsPageSlug"), seoTitle: $("#cmsSeoTitle"), seoDescription: $("#cmsSeoDescription"),
-  content: $("#cmsPageContent"), visible: $("#cmsShowInMenu"), pageId: $("#cmsPageId"),
+  content: $("#cmsPageContent"), editor: $("#cmsPageEditor"), visible: $("#cmsShowInMenu"), pageId: $("#cmsPageId"),
   save: $("#cmsSavePageBtn"), newPage: $("#cmsNewPageBtn"), mediaInput: $("#cmsMediaInput"),
   mediaList: $("#cmsMediaList"), revisionLabel: $("#cmsRevisionLabel"), revisionList: $("#cmsRevisionList"),
   saveRevision: $("#cmsSaveRevisionBtn"), restoreHint: $("#cmsRestoreHint")
@@ -41,6 +41,50 @@ function busy(button, yes, label) {
   button.disabled = yes;
   button.textContent = yes ? label : button.dataset.label;
 }
+const CMS_ALLOWED_TAGS = new Set(["P","BR","STRONG","B","EM","I","U","H2","H3","H4","UL","OL","LI","BLOCKQUOTE","A","HR"]);
+function safeEditorHref(value) {
+  const href = String(value || "").trim();
+  if (!href) return "";
+  try {
+    const url = new URL(href, window.location.href);
+    if (["https:","http:","mailto:","tel:"].includes(url.protocol)) return href;
+  } catch {}
+  return "";
+}
+function sanitizeEditorHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+  const blocked = new Set(["SCRIPT","STYLE","IFRAME","OBJECT","EMBED","SVG","MATH","FORM","INPUT","BUTTON","TEXTAREA","VIDEO","AUDIO"]);
+  function cleanChildren(parent) {
+    [...parent.childNodes].forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) return;
+      if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); return; }
+      if (blocked.has(child.tagName)) { child.remove(); return; }
+      cleanChildren(child);
+      if (!CMS_ALLOWED_TAGS.has(child.tagName)) {
+        child.replaceWith(...child.childNodes);
+        return;
+      }
+      const href = child.tagName === "A" ? safeEditorHref(child.getAttribute("href")) : "";
+      const title = child.tagName === "A" ? String(child.getAttribute("title") || "").slice(0,160) : "";
+      [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+      if (href) child.setAttribute("href", href);
+      if (title) child.setAttribute("title", title);
+    });
+  }
+  cleanChildren(template.content);
+  return template.innerHTML.slice(0, 12000);
+}
+function plainTextToHtml(value) {
+  const wrapper = document.createElement("div");
+  String(value || "").split(/\r?\n/).forEach(line => {
+    const p = document.createElement("p"); p.textContent = line; wrapper.appendChild(p);
+  });
+  return wrapper.innerHTML;
+}
+function syncEditorSource() {
+  if (ui.editor && ui.content) ui.content.value = sanitizeEditorHtml(ui.editor.innerHTML);
+}
 async function init() {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) return announce("Connexion non disponible. Recharge le tableau de bord.", true);
@@ -56,6 +100,21 @@ async function init() {
   ui.saveRevision.addEventListener("click", saveRevision);
   ui.mediaInput.addEventListener("change", uploadMedia);
   ui.title.addEventListener("input", () => { if (!ui.pageId.value) ui.slug.value = slugify(ui.title.value); });
+  if (ui.editor) {
+    ui.editor.addEventListener("input", syncEditorSource);
+    $(".cms-editor-toolbar")?.addEventListener("click", event => {
+      const button = event.target.closest("button[data-cms-command]");
+      if (!button) return;
+      ui.editor.focus();
+      document.execCommand(button.dataset.cmsCommand, false, button.dataset.cmsValue || null);
+      syncEditorSource();
+    });
+    $("#cmsInsertLinkBtn")?.addEventListener("click", () => {
+      const href = safeEditorHref(window.prompt("Adresse du lien (https://…, mailto: ou tel:)") || "");
+      if (!href) return announce("Lien ignoré : indique une adresse http(s), e-mail ou téléphone.", true);
+      ui.editor.focus(); document.execCommand("createLink", false, href); syncEditorSource();
+    });
+  }
 }
 async function loadSites() {
   try {
@@ -124,14 +183,16 @@ function fillPageForm(page) {
   ui.pageId.value = page.id; ui.title.value = page.title || ""; ui.slug.value = page.slug || "";
   ui.seoTitle.value = page.seo_title || ""; ui.seoDescription.value = page.seo_description || "";
   const c = page.content || {};
-  ui.content.value = typeof c === "string" ? c : String(c.body || c.content || "");
+  const body = typeof c === "string" ? c : String(c.body || c.content || "");
+  ui.content.value = body;
+  if (ui.editor) ui.editor.innerHTML = c && c.format === "html" ? sanitizeEditorHtml(body) : plainTextToHtml(body);
   ui.visible.checked = page.show_in_menu !== false;
   ui.save.textContent = "Enregistrer la page";
   announce("Modification de « " + page.title + " ».");
 }
 function clearPageForm() {
   if (!ui.form) return;
-  ui.form.reset(); ui.pageId.value = ""; ui.slug.value = ""; ui.save.textContent = "Créer la page";
+  ui.form.reset(); ui.pageId.value = ""; ui.slug.value = ""; ui.save.textContent = "Créer la page"; ui.content.value = ""; if (ui.editor) ui.editor.innerHTML = "<p></p>";
 }
 async function savePage(event) {
   event.preventDefault();
@@ -141,7 +202,7 @@ async function savePage(event) {
   if (!title) return announce("Le titre de la page est obligatoire.", true);
   const payload = {
     site_id: siteId, organization_id: organizationId, title, slug,
-    content: { body: ui.content.value.trim() },
+    content: { body: sanitizeEditorHtml(ui.editor ? ui.editor.innerHTML : ui.content.value.trim()), format: "html" },
     seo_title: ui.seoTitle.value.trim().slice(0, 70),
     seo_description: ui.seoDescription.value.trim().slice(0, 170),
     show_in_menu: ui.visible.checked,
@@ -157,7 +218,7 @@ async function savePage(event) {
       result = await supabase.from("site_pages").insert(payload).select("id").single();
     }
     if (result.error) throw result.error;
-    announce("Page enregistrée en brouillon. Publie cette page puis republie le site pour la rendre accessible sur son URL.");
+    announce("Page enregistrée en brouillon. Publie la page puis republie le site pour la rendre accessible aux visiteurs.");
     clearPageForm(); await loadPages();
   } catch (error) { announce(friendly(error), true); }
   finally { busy(ui.save, false); }
