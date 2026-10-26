@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 const root=process.cwd();
-for(const f of ["site-studio.html","site-studio.css","site-release.css","site-templates.js","site-studio.js","site-publisher.js","sama-dashboard.html","sama-dashboard.css","sama-dashboard.js"])assert.ok(existsSync(join(root,f)),"Missing deliverable: "+f);
+for(const f of ["index.html","site-studio.html","site-studio.css","site-release.css","site-templates.js","site-studio.js","site-publisher.js","sama-dashboard.html","sama-dashboard.css","sama-dashboard.js"])assert.ok(existsSync(join(root,f)),"Missing deliverable: "+f);
 const studio=readFileSync(join(root,"site-studio.html"),"utf8");
 for(const asset of ["site-release.css","site-templates.js","site-studio.js","site-publisher.js"])assert.ok(studio.includes(asset),"Missing builder asset: "+asset);
 const templates=readFileSync(join(root,"site-templates.js"),"utf8");
