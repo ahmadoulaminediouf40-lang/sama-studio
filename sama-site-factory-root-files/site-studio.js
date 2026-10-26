@@ -387,6 +387,8 @@
         notify("Cette étape se prépare. Réessaie dans un instant.");
         return;
       }
+      const layout = document.querySelector(".studio-layout");
+      if (layout) layout.dataset.studioStage = step;
       document.querySelectorAll(".studio-step[data-studio-step]").forEach((button) => {
         const active = button.dataset.studioStep === step;
         button.classList.toggle("active", active);
@@ -688,6 +690,8 @@
       return;
     }
     $("#currentYear").textContent = String(new Date().getFullYear());
+    const studioLayout = document.querySelector(".studio-layout");
+    if (studioLayout) studioLayout.dataset.studioStage = "models";
     fields.name.value = templates[0].demoBrand;
     fields.tagline.value = templates[0].headline;
     fields.city.value = templates[0].location.split(",")[0] || "Dakar";
