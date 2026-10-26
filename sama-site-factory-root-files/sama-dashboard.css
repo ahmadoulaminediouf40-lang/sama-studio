@@ -79,3 +79,22 @@
 #cmsRevisionLabel{box-sizing:border-box;width:100%;margin:6px 0 10px;border:1px solid var(--line,#e1e9e3);border-radius:9px;padding:10px;font:inherit;font-size:12px}
 @media(max-width:900px){.cms-columns{grid-template-columns:1fr}}
 @media(max-width:540px){.cms-item{align-items:flex-start;flex-direction:column}.cms-item-actions{justify-content:flex-start}.cms-subpanel{padding:12px}.cms-media-card{align-items:flex-start}}
+
+
+/* Navigation simplifiée : recherche instantanée et accès mieux hiérarchisés. */
+.sidebar{padding:14px;background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:0 6px 22px #183c2607}
+.nav-search-wrap{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:9px 10px;border:1px solid #dfe8e0;border-radius:10px;background:#f8fbf8;color:#66806d}
+.nav-search-wrap>span{font-size:17px;line-height:1}
+.nav-search-wrap input{min-width:0;width:100%;border:0;outline:0!important;background:transparent;color:var(--ink);font:inherit;font-size:10px}
+.nav-search-wrap input::placeholder{color:#93a197}
+.nav-search-wrap kbd{flex:none;padding:3px 5px;border:1px solid #dce6dd;border-radius:5px;background:#fff;color:#8a998d;font:9px ui-monospace,monospace}
+.nav-search-empty{margin:0 0 10px;padding:9px 10px;color:#9a6b36;font-size:10px;line-height:1.5;background:#fff7eb;border-radius:8px}
+.nav-item.search-hidden{display:none!important}
+.main-nav{gap:4px}
+.nav-item{padding:11px 10px;border-radius:9px;line-height:1.35}
+.nav-item.active{background:#eaf5ec;border-color:#dcebdd;box-shadow:none}
+.nav-item:focus-visible{outline:3px solid #9ec9aa;outline-offset:2px}
+.content-header{padding-bottom:16px;border-bottom:1px solid #e5ece5}
+.panel{box-shadow:0 5px 20px #183c2606}
+@media(max-width:780px){.sidebar{padding:12px;border-radius:14px;position:static}.nav-search-wrap{margin-bottom:10px}.main-nav{display:flex;overflow:auto;gap:6px;padding-bottom:4px;scrollbar-width:thin}.nav-item{flex:none}.content-header{padding-bottom:13px}.nav-search-empty{margin-bottom:8px}}
+@media(max-width:440px){.nav-search-wrap kbd{display:none}.nav-search-wrap input{font-size:11px}}
