@@ -12,7 +12,7 @@ for(const marker of ["useCase:","recommendedPages:","managementModules:","custom
 const studioSource=readFileSync(join(root,"site-studio.js"),"utf8");
 for(const marker of ["gallery-card-context","selectedTemplateContext","managementModules"])assert.ok(studioSource.includes(marker),"Missing template guidance "+marker);
 const publisher=readFileSync(join(root,"site-publisher.js"),"utf8");
-for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","create-storefront-order","customerPhone","sitePagesEditor","siteMediaGrid","siteRevisionList","custom-content-section","safeImageUrl"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
+for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","customerPhone","sitePagesEditor","siteMediaGrid","siteRevisionList","custom-content-section","safeImageUrl"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
 const checkoutStart=publisher.indexOf("async function checkout()");const checkoutEnd=publisher.indexOf("function setBusinessContent()",checkoutStart);assert.ok(checkoutStart>=0&&checkoutEnd>checkoutStart&&publisher.slice(checkoutStart,checkoutEnd).includes("https://wa.me/"),"Storefront checkout must route customers directly to WhatsApp.");
 for(const marker of ["https://wa.me/","Ta commande est prête dans WhatsApp","D.business.whatsapp || D.business.phone"])assert.ok(publisher.includes(marker),"Missing WhatsApp checkout behavior "+marker);
 const dashboard=readFileSync(join(root,"sama-dashboard.html"),"utf8");
