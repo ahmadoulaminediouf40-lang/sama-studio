@@ -670,6 +670,7 @@
     window.SAMA_PUBLISHER = {
       submitForReview: submitForReview,
       previewWebsite: previewWebsite,
+      persistDraft: persistReleaseDraft,
       getCurrentData: collectData
     };
     var form = $("#projectForm");
