@@ -305,6 +305,8 @@
   function revisionSnapshot(label) {
     var data = collectData();
     data.media = [];
+    if (/^data:image\//i.test(data.template.heroImage || "")) data.template.heroImage = "";
+    if (/^data:image\//i.test(data.business.logoUrl || "")) data.business.logoUrl = "";
     data.products = data.products.map(function (product) {
       if (/^data:image\//i.test(product.image || "")) product.image = "";
       return product;
@@ -367,7 +369,7 @@
         whatsapp: fieldValue("businessWhatsapp"), email: fieldValue("businessEmail"), address: fieldValue("businessAddress"),
         description: fieldValue("businessDescription") || template.body || "", hours: fieldValue("businessHours"),
         delivery: fieldValue("businessDelivery"), instagram: safeUrl(fieldValue("businessInstagram")),
-        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeUrl(fieldValue("logoUrl")),
+        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeImageUrl(fieldValue("logoUrl")),
         seoTitle: fieldValue("seoTitle").slice(0, 70), seoDescription: fieldValue("seoDescription").slice(0, 170)
       },
       design: {
@@ -676,7 +678,7 @@
     }
         function setBusinessContent() {
       var logo = byId("siteLogo");
-      if (D.business.logoUrl && safeUrl(D.business.logoUrl)) {
+      if (D.business.logoUrl && safeImageUrl(D.business.logoUrl)) {
         var img = el("img", "brand-mark"); setImage(img, D.business.logoUrl, "Logo " + D.business.name);
         logo.replaceWith(img); img.id = "siteLogo";
       } else logo.textContent = (D.business.name || "S").trim().charAt(0).toLocaleUpperCase("fr") || "S";
@@ -761,13 +763,13 @@
     page.push('<meta name="theme-color" content="' + escapeHtml(data.design.primaryColor) + '">');
     page.push('<meta name="description" content="' + escapeHtml(String(data.business.seoDescription || data.business.headline || data.business.description || data.business.name).slice(0, 170)) + '">');
     page.push('<meta property="og:title" content="' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '"><meta property="og:description" content="' + escapeHtml(data.business.seoDescription || data.business.headline || data.business.description || data.business.name) + '">');
-    if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeUrl(data.template.heroImage)) + '">');
+    if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '">');
     page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css + '</style></head><body>');
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
     var customPages = Array.isArray(data.pages) ? data.pages.filter(function (page) { return page.visible !== false && page.title; }) : [];
     var customNav = customPages.map(function (page, index) { return '<a href="#' + escapeHtml("custom-" + safePageSlug(page.slug || page.title || ("page-" + index))) + '">' + escapeHtml(page.title) + '</a>'; }).join("");
     page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a>' + customNav + '<a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
-    page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
+    page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
     page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Informations et prix visibles</div><div class="trust-item"><span class="trust-icon">↗</span> Commande simple via WhatsApp</div><div class="trust-item"><span class="trust-icon">◎</span> Contact direct avec le vendeur</div></div></section>');
     page.push('<section class="section" id="catalog"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">La sélection</span><h2>Nos produits</h2></div><p>Choisis tes articles et ajoute-les au panier. La disponibilité et les conditions sont confirmées avant validation.</p></div><div class="shop-tools"><label class="sr-only" for="productSearch">Rechercher un produit</label><input id="productSearch" class="shop-input" type="search" placeholder="Rechercher un produit…"><label class="sr-only" for="categoryFilter">Catégorie</label><select id="categoryFilter" class="shop-select"><option value="">Toutes les catégories</option></select><span class="product-count" id="productCount"></span></div><div class="product-grid" id="productGrid"></div><p class="empty-products" id="noProducts" hidden>Aucun produit ne correspond à cette recherche.</p></div></section>');
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
@@ -820,7 +822,7 @@
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
-        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
+        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeImageUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
       });
       if (Array.isArray(saved.pages)) state.pages = saved.pages.map(function (page) { return Object.assign({}, page); });
       if (Array.isArray(saved.media)) state.media = saved.media.filter(function (item) { return item && /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(item.dataUrl || ""); }).slice(0, 6);
