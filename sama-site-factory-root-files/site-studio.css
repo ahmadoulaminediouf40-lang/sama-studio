@@ -148,3 +148,40 @@
 
 /* Contextual guidance: each model explains its real business use and private tools. */
 .template-gallery-card .gallery-card-context{display:block;margin-top:8px;color:#51677b;font-size:11px;line-height:1.45;font-weight:500}.selected-template-context{display:grid;gap:5px;margin:12px 0 18px;padding:13px 14px;border:1px solid #dce6ee;border-radius:12px;background:#f7fafc;color:#253d52;font-size:12px;line-height:1.5}.selected-template-context strong{margin-top:3px;font-size:11px;letter-spacing:.02em;color:#1c4866}.selected-template-context p{margin:0 0 4px;color:#53697c}.template-gallery-card{height:auto;min-height:180px}
+
+
+/* Desktop-first guided creator: stable navigation, readable columns and clear stage-specific actions. */
+@media (min-width:1121px) {
+  .studio-guide { max-width:1900px; margin:10px auto 0; padding:12px 28px; flex-direction:row; align-items:center; gap:28px; }
+  .studio-guide-intro { min-width:220px; }
+  .studio-guide-steps { width:auto; flex:1; max-width:1000px; gap:10px; }
+  .studio-step { min-height:58px; padding:10px 14px; }
+  .studio-step strong { font-size:12px; }
+  .studio-step small { font-size:10px; }
+  .studio-layout { max-width:1900px; margin:0 auto; padding:20px 28px 34px; gap:22px; align-items:start; }
+  .studio-layout[data-studio-stage="models"] { grid-template-columns:270px minmax(0,1fr); }
+  .studio-layout[data-studio-stage="models"] .all-templates-section { display:none; }
+  .studio-layout[data-studio-stage="customize"] { grid-template-columns:minmax(0,1fr) 390px; }
+  .studio-layout[data-studio-stage="products"] { grid-template-columns:minmax(0,1fr) 430px; }
+  .studio-layout[data-studio-stage="customize"] > .configuration-panel,
+  .studio-layout[data-studio-stage="products"] > .configuration-panel { position:sticky; top:100px; max-height:calc(100vh - 120px); overflow-y:auto; scrollbar-width:thin; }
+  .studio-layout[data-studio-stage="products"] > .configuration-panel { max-height:none; overflow:visible; }
+  .studio-layout[data-studio-stage="products"] > .configuration-panel > .release-panel { margin-top:0; }
+  .page-heading { gap:20px; align-items:center; }
+  .page-heading > div:first-child { max-width:780px; }
+  .page-heading h1 { font-size:clamp(28px, 2.4vw, 38px); line-height:1.1; }
+  .page-heading p { max-width:680px; font-size:13px; line-height:1.75; }
+  .studio-heading-next { min-height:44px; padding:0 17px; }
+  .template-sidebar { top:100px; max-height:calc(100vh - 120px); overflow-y:auto; scrollbar-width:thin; }
+  .configuration-panel { top:100px; }
+}
+@media (min-width:1121px) and (max-width:1399px) {
+  .studio-guide { padding-left:20px; padding-right:20px; gap:16px; }
+  .studio-guide-intro { min-width:190px; }
+  .studio-guide-intro>span { max-width:190px; }
+  .studio-step { padding:9px 10px; gap:7px; }
+  .studio-step small { white-space:normal; }
+  .studio-step-connector { flex-basis:8px; }
+  .studio-layout { padding-left:20px; padding-right:20px; gap:16px; }
+}
+.studio-heading-next { white-space:normal; text-align:left; line-height:1.35; }
