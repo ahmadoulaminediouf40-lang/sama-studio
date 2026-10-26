@@ -628,38 +628,34 @@
         return { id: id, product: product, quantity: quantity, price: cartPriceValue(product) };
       }).filter(Boolean);
       if (!entries.length) return announce("Ton panier est vide.");
-      var remote = window.SAMA_STOREFRONT_CONFIG;
-      if (!remote || !remote.apiUrl || !remote.siteSlug || !remote.publishableKey) {
-        return announce("Les commandes en ligne ne sont pas encore activées pour ce site. Aucune commande n’a été envoyée. Réessaie plus tard ou utilise les coordonnées de contact du site.");
-      }
+      var whatsapp = normalizedPhone(D.business.whatsapp || D.business.phone);
+      if (!whatsapp) return announce("Le vendeur n’a pas renseigné de numéro WhatsApp. Contacte-le par les coordonnées affichées sur le site.");
       var customerName = String(byId("customerName").value || "").trim();
       var customerPhone = String(byId("customerPhone").value || "").trim();
       var customerAddress = String(byId("customerAddress").value || "").trim();
       var notes = String(byId("customerNotes").value || "").trim();
-      if (customerName.length < 1) return announce("Renseigne ton nom pour envoyer la commande.");
+      if (!customerName) return announce("Renseigne ton nom avant d’envoyer la commande.");
       if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
-      var checkoutButton = byId("checkoutBtn");
-      checkoutButton.disabled = true;
-      checkoutButton.textContent = "Enregistrement…";
-      try {
-        var result = await fetch(String(remote.apiUrl).replace(/\/$/, "") + "/functions/v1/create-storefront-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "apikey": remote.publishableKey, "Authorization": "Bearer " + remote.publishableKey },
-          body: JSON.stringify({ site_slug: remote.siteSlug, customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, notes: notes, website: "", items: entries.map(function (entry) { return { product_id: entry.id, quantity: entry.quantity }; }) })
-        });
-        var payload = {};
-        try { payload = await result.json(); } catch (parseError) { payload = {}; }
-        if (!result.ok || !payload.accepted || !payload.order) throw new Error(payload.error || "La commande n’a pas été enregistrée. Vérifie la connexion puis réessaie.");
-        cart = {};
-        renderCart();
-        closeCart();
-        announce("Commande #" + payload.order.order_number + " enregistrée sur le site. Le vendeur la retrouvera dans son espace de gestion.");
-      } catch (error) {
-        announce(error && error.message ? error.message : "Impossible d’enregistrer la commande.");
-      } finally {
-        checkoutButton.disabled = Object.keys(cart).length === 0;
-        checkoutButton.textContent = "Envoyer la commande";
-      }
+      var message = "Bonjour " + String(D.business.name || "") + ", je souhaite passer cette commande :\n\n";
+      var total = 0, totalKnown = true;
+      entries.forEach(function (entry, index) {
+        var line = (index + 1) + ". " + String(entry.product.name || entry.product.title || "Produit") + " × " + entry.quantity;
+        if (entry.price !== null) { var subtotal = entry.price * entry.quantity; total += subtotal; line += " — " + cartMoney(subtotal); }
+        else totalKnown = false;
+        message += line + "\n";
+      });
+      if (totalKnown) message += "\nTotal estimé : " + cartMoney(total) + "\n";
+      message += "\nNom : " + customerName + "\nTéléphone du client : " + customerPhone;
+      if (customerAddress) message += "\nAdresse / livraison : " + customerAddress;
+      if (notes) message += "\nPrécisions : " + notes;
+      message += "\n\nCommande envoyée depuis le site " + String(window.location.hostname || "du vendeur") + ". Merci de confirmer la disponibilité et la livraison.";
+      var url = "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(message);
+      var opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.href = url;
+      cart = {};
+      renderCart();
+      closeCart();
+      announce("Ta commande est prête dans WhatsApp. Envoie le message pour la transmettre au vendeur.");
     }
         function setBusinessContent() {
       var logo = byId("siteLogo");
