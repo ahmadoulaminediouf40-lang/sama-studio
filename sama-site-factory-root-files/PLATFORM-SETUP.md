@@ -4,7 +4,7 @@ Cette version rassemble le tableau de bord, le schéma Supabase, les fonctions E
 
 ## Parcours utilisateur
 
-1. Héberge le dossier du configurateur et `sama-dashboard.html`, `sama-dashboard.css`, `sama-dashboard.js` sur une origine HTTPS. Cloudflare Pages est recommandé pour héberger le tableau de bord.
+1. Dans Cloudflare Pages, connecte le dépôt GitHub `ahmadoulaminediouf40-lang/sama-studio` avec la branche de production `main`. Choisis aucun framework, laisse la commande de build vide et indique `sama-site-factory-root-files` comme répertoire de sortie. Le fichier `index.html` fournit la page d'accueil avec les liens vers l'atelier et le tableau de bord.
 2. Le tableau de bord est préconfiguré avec l'URL et la clé publique publishable du projet Supabase Sama Studio. La clé publique peut être visible dans le navigateur, mais jamais la clé secrète ou service-role.
 3. Crée un compte avec une adresse e-mail et un mot de passe. Si la confirmation e-mail est activée dans Supabase Auth, confirme le message avant la connexion.
 4. Crée l'espace de ton entreprise. Les organisations, sites, produits et commandes sont reliés au tenant côté base.
