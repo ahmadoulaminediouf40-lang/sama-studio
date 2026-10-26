@@ -31,5 +31,6 @@ assert.ok(publishFn.includes("addHtmlAsset(String(page.slug) + \"/index.html\"")
 assert.ok(orderFn.includes("create_storefront_order")&&orderFn.includes("SUPABASE_SERVICE_ROLE_KEY")&&orderFn.includes("SUPABASE_SECRET_KEYS"),"Missing central order API or modern Supabase secret-key support");
 const publishSource=readFileSync(join(root,"../supabase/functions/publish-site/index.ts"),"utf8");
 assert.ok(publishSource.includes("Self-service publishing")&&publishSource.includes("trial_ends_at"),"Missing self-service publishing with trial/subscription enforcement.");
-assert.ok(dashboard.includes("Publier mon site")&&dashboard.includes('neq("status","published")'),"Missing owner self-publishing UI or published-site review queue exclusion.");
+const dashboardSource=readFileSync(join(root,"sama-dashboard.js"),"utf8");
+assert.ok(dashboardSource.includes("Publier mon site")&&dashboardSource.includes('neq("status","published")'),"Missing owner self-publishing UI or published-site review queue exclusion.");
 console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, self-service publishing and WhatsApp orders.");
