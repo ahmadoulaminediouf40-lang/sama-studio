@@ -88,8 +88,8 @@
     var panel = create("section", "release-panel");
     panel.setAttribute("aria-label", "Enregistrer le site et demander sa validation");
     panel.innerHTML =
-      '<div class="release-panel-heading"><div><span class="eyebrow">ÉTAPE 03</span><h2>Enregistrer & faire valider</h2></div><span class="release-pill">100 % en ligne</span></div>' +
-      '<p class="release-intro">Votre site sera sauvegardé dans votre compte Sama Studio. Notre équipe le vérifiera avant de l’activer. Aucun fichier HTML à télécharger, aucun hébergement à configurer vous-même.</p>' +
+      '<div class="release-panel-heading"><div><span class="eyebrow">ÉTAPE 03</span><h2>Enregistrer mon site</h2></div><span class="release-pill">100 % en ligne</span></div>' +
+      '<p class="release-intro">Votre site sera sauvegardé dans votre compte Sama Studio. Vous pourrez le publier vous-même depuis votre tableau de bord, sans télécharger de fichier HTML ni configurer d’hébergement.</p>' +
       '<div class="release-capability-row"><span>✓ Aperçu instantané</span><span>✓ Sauvegarde sécurisée</span><span>✓ Validation humaine</span></div>' +
       '<details class="product-editor-details" open><summary><span>Votre catalogue de produits</span><small id="releaseProductCount">3 produits</small></summary>' +
       '<p class="release-help">Remplacez les exemples par vos produits réels. Pour chaque article, renseignez un nom, un prix, une image et une description claire. La capacité du catalogue dépendra de votre formule.</p>' +
@@ -106,9 +106,9 @@
       '<p class="release-help">Créez un point de restauration avant une modification importante. Les versions sont conservées dans ce navigateur.</p>' +
       '<button id="createRevisionBtn" class="btn btn-secondary btn-full" type="button">Créer une version maintenant</button><div id="siteRevisionList" class="site-revision-list"></div></details>' +
       '<label class="release-confirmation"><input id="releaseChecklistConfirmed" type="checkbox"><span><strong>J’ai vérifié les informations</strong><small>Les prix, produits, coordonnées et images sont exacts. J’ai remplacé au moins un exemple par un produit réel et indiqué sa disponibilité.</small></span></label>' +
-      '<div class="release-export-actions"><button id="backToCustomizationBtn" class="btn btn-secondary btn-full" type="button" data-studio-step="customize">← Retour à la personnalisation</button><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
+      '<div class="release-export-actions"><button id="backToCustomizationBtn" class="btn btn-secondary btn-full" type="button" data-studio-step="customize">← Retour à la personnalisation</button><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer mon site <span aria-hidden="true">→</span></button>' +
       '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Voir mon aperçu</button></div>' +
-      '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>';
+      '<div class="release-disclaimer"><strong>Après l’enregistrement</strong><p>Votre brouillon apparaît dans votre espace. Vérifiez les informations et les produits, puis publiez votre site depuis le tableau de bord. Vous pouvez le modifier et republier une nouvelle version quand vous le souhaitez.</p></div>';
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
     var pageEditorStyles = create("style");
