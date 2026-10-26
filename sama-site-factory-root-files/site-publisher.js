@@ -369,21 +369,32 @@
     }
     async function checkout() {
       var entries = Object.keys(cart).map(function (id) {
-        var p = productById(id);
-        return p ? "- " + p.name + " × " + cart[id] + " (" + (p.price || "prix à confirmer") + ")" : "";
+        var product = productById(id), quantity = Math.max(0, Number(cart[id]) || 0);
+        if (!product || quantity < 1) return null;
+        var price = cartPriceValue(product);
+        return { id: id, product: product, quantity: quantity, price: price };
       }).filter(Boolean);
       if (!entries.length) return announce("Ton panier est vide.");
       var phone = normalizedPhone(D.business.whatsapp || D.business.phone);
       var remote = window.SAMA_STOREFRONT_CONFIG;
-      var message = "Bonjour " + D.business.name + ", je souhaite passer cette commande :\\n" + entries.join("\\n");
+      var subtotalValue = entries.reduce(function (sum, entry) { return sum + (entry.price === null ? 0 : entry.price * entry.quantity); }, 0);
+      var hasUnpriced = entries.some(function (entry) { return entry.price === null; });
+      var message = "Bonjour " + D.business.name + ", je souhaite passer cette commande.\n\nArticles :\n" +
+        entries.map(function (entry) {
+          var line = "- " + entry.product.name + " × " + entry.quantity;
+          if (entry.price === null) line += " — prix à confirmer";
+          else line += " — " + cartMoney(entry.price) + " / unité — " + cartMoney(entry.price * entry.quantity);
+          return line;
+        }).join("\n") +
+        "\n\nSous-total indicatif : " + (hasUnpriced ? "à confirmer (" + cartMoney(subtotalValue) + " pour les articles tarifés)" : cartMoney(subtotalValue)) +
+        "\nLivraison et disponibilité à confirmer par le vendeur.";
       if (remote && remote.apiUrl && remote.siteSlug && remote.publishableKey) {
         var customerName = String(byId("customerName").value || "").trim();
         var customerPhone = String(byId("customerPhone").value || "").trim();
         var customerAddress = String(byId("customerAddress").value || "").trim();
         var notes = String(byId("customerNotes").value || "").trim();
-        if (customerName.length < 1 || customerPhone.replace(/\\D/g, "").length < 8) {
-          return announce("Renseigne ton nom et un numéro de téléphone valide pour envoyer la commande.");
-        }
+        if (customerName.length < 1) return announce("Renseigne ton nom pour envoyer la commande.");
+        if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
         var checkoutButton = byId("checkoutBtn");
         checkoutButton.disabled = true;
         checkoutButton.textContent = "Enregistrement…";
@@ -402,19 +413,19 @@
               customer_address: customerAddress,
               notes: notes,
               website: "",
-              items: Object.keys(cart).map(function (id) { return { product_id: id, quantity: Number(cart[id]) || 0 }; })
+              items: entries.map(function (entry) { return { product_id: entry.id, quantity: entry.quantity }; })
             })
           });
           var payload = {};
           try { payload = await result.json(); } catch (parseError) { payload = {}; }
           if (!result.ok || !payload.accepted || !payload.order) {
-            throw new Error(payload.error || "La commande n’a pas été enregistrée. Vérifie ta connexion et réessaie.");
+            throw new Error(payload.error || "La commande n’a pas été enregistrée. Vérifie la connexion puis réessaie.");
           }
-          message += "\\n\\nRéférence de commande : #" + payload.order.order_number +
-            "\\nNom : " + customerName + "\\nTéléphone : " + customerPhone +
-            (customerAddress ? "\\nAdresse : " + customerAddress : "") +
-            (notes ? "\\nNote : " + notes : "") +
-            "\\n\\nMerci de confirmer la disponibilité et la livraison.";
+          message += "\n\nRéférence de commande : #" + payload.order.order_number +
+            "\nNom : " + customerName + "\nTéléphone : " + customerPhone +
+            (customerAddress ? "\nAdresse : " + customerAddress : "") +
+            (notes ? "\nNote : " + notes : "") +
+            "\n\nMerci de confirmer le montant final et le délai de livraison.";
           cart = {};
           renderCart();
           closeCart();
@@ -423,7 +434,7 @@
             var popup = window.open(whatsappUrl, "_blank");
             if (popup) popup.opener = null;
             else window.location.href = whatsappUrl;
-            announce("Commande #" + payload.order.order_number + " enregistrée. WhatsApp s’ouvre pour confirmer avec le vendeur.");
+            announce("Commande #" + payload.order.order_number + " enregistrée. WhatsApp s’ouvre pour finaliser les détails.");
           } else {
             announce("Commande #" + payload.order.order_number + " enregistrée. Le vendeur pourra te recontacter.");
           }
@@ -431,18 +442,26 @@
           announce(error && error.message ? error.message : "Impossible d’enregistrer la commande.");
         } finally {
           checkoutButton.disabled = Object.keys(cart).length === 0;
-          checkoutButton.textContent = "Continuer sur WhatsApp";
+          checkoutButton.textContent = "Envoyer la commande";
         }
         return;
       }
-      if (!phone) return announce("Le vendeur n’a pas renseigné de numéro de commande. Contacte-le par téléphone ou e-mail.");
-      message += "\\n\\nNom : \\nAdresse ou quartier : \\nMode de livraison : \\nMerci.";
+      if (!phone) return announce("Le vendeur n’a pas renseigné de numéro WhatsApp pour les commandes. Contacte-le par e-mail.");
+      var nameOnly = String(byId("customerName").value || "").trim();
+      var phoneOnly = String(byId("customerPhone").value || "").trim();
+      if (!nameOnly || phoneOnly.replace(/\D/g, "").length < 8) {
+        return announce("Renseigne ton nom et ton téléphone avant d’ouvrir WhatsApp.");
+      }
+      message += "\n\nNom : " + nameOnly + "\nTéléphone : " + phoneOnly +
+        "\nAdresse : " + String(byId("customerAddress").value || "").trim() +
+        "\nNote : " + String(byId("customerNotes").value || "").trim() +
+        "\n\nLa commande est à confirmer par le vendeur.";
       var url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
       var win = window.open(url, "_blank");
       if (win) win.opener = null;
       else window.location.href = url;
     }
-    function setBusinessContent() {
+        function setBusinessContent() {
       var logo = byId("siteLogo");
       if (D.business.logoUrl && safeUrl(D.business.logoUrl)) {
         var img = el("img", "brand-mark"); setImage(img, D.business.logoUrl, "Logo " + D.business.name);
@@ -537,7 +556,7 @@
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
     page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
-    page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><small id="cartSummary">Les prix et la disponibilité sont confirmés par le vendeur.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Continuer sur WhatsApp</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
+    page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
     page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script></body></html>');
     return page.join("\n");
   }
