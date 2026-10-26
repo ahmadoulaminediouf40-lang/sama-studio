@@ -21,5 +21,7 @@ assert.ok(authTriggerPermissions.toLowerCase().includes("revoke all on function 
 const publishFn=readFileSync(join(root,"../supabase/functions/publish-site/index.ts"),"utf8");
 const orderFn=readFileSync(join(root,"../supabase/functions/create-storefront-order/index.ts"),"utf8");
 assert.ok(publishFn.includes("CLOUDFLARE_API_TOKEN")&&publishFn.includes("CLOUDFLARE_ACCOUNT_ID")&&publishFn.includes("publishableKey"),"Missing authenticated Cloudflare Pages publishing integration");
+assert.ok(publishFn.includes("renderSitePage")&&publishFn.includes("site_pages")&&publishFn.includes("status\", \"published\""),"Missing published CMS pages in static deployment");
+assert.ok(publishFn.includes("addHtmlAsset(String(page.slug) + \"/index.html\"")&&publishFn.includes("seo_description")&&publishFn.includes("aria-label=\"Navigation"),"Missing page routes, SEO metadata, or page navigation");
 assert.ok(orderFn.includes("create_storefront_order")&&orderFn.includes("SUPABASE_SERVICE_ROLE_KEY")&&orderFn.includes("SUPABASE_SECRET_KEYS"),"Missing central order API or modern Supabase secret-key support");
 console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, publishing and central orders.");
