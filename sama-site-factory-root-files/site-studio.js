@@ -373,6 +373,32 @@
     });
     form.addEventListener("submit", saveProject);
     $("#copySummaryBtn").addEventListener("click", copySummary);
+    document.addEventListener("click", (event) => {
+      const stepButton = event.target.closest("[data-studio-step]");
+      if (!stepButton) return;
+      const step = stepButton.dataset.studioStep;
+      const targets = {
+        models: document.querySelector(".template-sidebar"),
+        customize: document.querySelector(".configuration-panel"),
+        products: document.querySelector(".release-panel")
+      };
+      const target = targets[step];
+      if (!target) {
+        notify("Cette étape se prépare. Réessaie dans un instant.");
+        return;
+      }
+      document.querySelectorAll(".studio-step[data-studio-step]").forEach((button) => {
+        const active = button.dataset.studioStep === step;
+        button.classList.toggle("active", active);
+        button.classList.toggle("completed", ["models", "customize", "products"].indexOf(button.dataset.studioStep) < ["models", "customize", "products"].indexOf(step));
+        if (active) button.setAttribute("aria-current", "step");
+        else button.removeAttribute("aria-current");
+      });
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (step === "models") $("#templateSearch")?.focus({ preventScroll: true });
+      if (step === "customize") $("#businessName")?.focus({ preventScroll: true });
+      if (step === "products") $("#siteProductsEditor")?.setAttribute("tabindex", "-1");
+    });
     $("#resetConfigBtn").addEventListener("click", resetConfiguration);
     $("#previewFromFormBtn")?.addEventListener("click", renderPreview);
     $("#submitForReviewBtn")?.addEventListener("click", () => {
