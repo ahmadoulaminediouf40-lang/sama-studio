@@ -367,6 +367,53 @@
     notify("Configuration réinitialisée pour ce modèle.");
   }
 
+  function applyStudioStage(step) {
+    const layout = document.querySelector(".studio-layout");
+    if (layout) layout.dataset.studioStage = step;
+    const copy = {
+      models: {
+        eyebrow: "ÉTAPE 1 · CHOISIS TON MODÈLE",
+        title: "Choisis le bon point de départ.",
+        description: "Sélectionne le modèle adapté à ton activité. Tu pourras ensuite modifier le nom, les couleurs, les coordonnées et le contenu.",
+        action: "Personnaliser ce modèle",
+        target: "customize"
+      },
+      customize: {
+        eyebrow: "ÉTAPE 2 · PERSONNALISE",
+        title: "Donne à ton site ton identité.",
+        description: "Renseigne les informations essentielles de ton entreprise. L’aperçu se met à jour pendant que tu modifies les champs.",
+        action: "Continuer : contenu et produits",
+        target: "products"
+      },
+      products: {
+        eyebrow: "ÉTAPE 3 · AJOUTE TON CONTENU",
+        title: "Prépare ton site avant de l’enregistrer.",
+        description: "Ajoute tes produits et tes pages, vérifie l’aperçu, puis enregistre ton brouillon. Tu pourras le publier depuis ton espace.",
+        action: "← Retour à la personnalisation",
+        target: "customize"
+      }
+    }[step];
+    if (!copy) return;
+    const eyebrow = $("#studioStageEyebrow");
+    const title = $("#studioStageTitle");
+    const description = $("#studioStageDescription");
+    const action = $("#studioStageAction");
+    if (eyebrow) eyebrow.textContent = copy.eyebrow;
+    if (title) title.textContent = copy.title;
+    if (description) description.textContent = copy.description;
+    if (action) {
+      action.dataset.studioStep = copy.target;
+      action.replaceChildren(document.createTextNode(copy.action));
+      if (step !== "products") {
+        const arrow = document.createElement("span");
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "→";
+        action.append(" ", arrow);
+      }
+      action.setAttribute("aria-label", copy.action);
+    }
+  }
+
   function bindForm() {
     Object.values(fields).forEach((field) => {
       field.addEventListener("input", () => {
@@ -396,8 +443,7 @@
         notify("Cette étape se prépare. Réessaie dans un instant.");
         return;
       }
-      const layout = document.querySelector(".studio-layout");
-      if (layout) layout.dataset.studioStage = step;
+      applyStudioStage(step);
       document.querySelectorAll(".studio-step[data-studio-step]").forEach((button) => {
         const active = button.dataset.studioStep === step;
         button.classList.toggle("active", active);
@@ -728,7 +774,7 @@
     }
     $("#currentYear").textContent = String(new Date().getFullYear());
     const studioLayout = document.querySelector(".studio-layout");
-    if (studioLayout) studioLayout.dataset.studioStage = "models";
+    applyStudioStage("models");
     fields.name.value = templates[0].demoBrand;
     fields.tagline.value = templates[0].headline;
     fields.city.value = templates[0].location.split(",")[0] || "Dakar";
