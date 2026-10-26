@@ -526,6 +526,43 @@
     if (!normalizeWhatsapp(data.business.whatsapp || data.business.phone)) announce("Site exportable, mais ajoute un numéro WhatsApp international pour activer les commandes.");
     return buildClientHtml(data);
   }
+  var isSubmittingReview = false;
+  async function submitForReview() {
+    if (isSubmittingReview) return;
+    var runSave = async function () {
+      if (isSubmittingReview) return;
+      var data, html;
+      try {
+        data = collectData();
+        if (!validateForExport(data, true)) return;
+        html = buildClientHtml(data);
+        if (!window.SAMA_STUDIO || typeof window.SAMA_STUDIO.saveForReview !== "function") {
+          throw new Error("La connexion sécurisée n’est pas prête. Recharge la page puis réessaie.");
+        }
+      } catch (error) {
+        announce(error.message || "Impossible de préparer le site.");
+        return;
+      }
+      isSubmittingReview = true;
+      var buttons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
+      buttons.forEach(function (button) { button.disabled = true; button.dataset.oldText = button.textContent; button.textContent = "Enregistrement…"; });
+      try {
+        await window.SAMA_STUDIO.saveForReview(data, html);
+        persistReleaseDraft();
+        announce("Site enregistré. La demande de validation a été envoyée à SAMA Studio.");
+      } catch (error) {
+        announce(error?.message || "L’enregistrement a échoué. Vérifiez votre connexion puis réessayez.");
+        buttons.forEach(function (button) { button.disabled = false; button.textContent = button.dataset.oldText || "Enregistrer et demander validation"; });
+        isSubmittingReview = false;
+      }
+    };
+    if (!window.SAMA_STUDIO || typeof window.SAMA_STUDIO.withAuth !== "function") {
+      announce("La connexion sécurisée se prépare. Réessaie dans quelques secondes.");
+      return;
+    }
+    window.SAMA_STUDIO.withAuth(runSave);
+  }
+
   function exportWebsite() {
     var html = prepareClientHtml(true); if (!html) return;
     var data = collectData();
@@ -533,12 +570,11 @@
     persistReleaseDraft(); announce("Site client HTML généré. Ouvre-le dans un navigateur pour le tester.");
   }
   function previewWebsite() {
-    var html = prepareClientHtml(false); if (!html) return;
-    var url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
-    var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.style.display = "none";
-    document.body.appendChild(link); link.click(); link.remove();
-    window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-    persistReleaseDraft(); announce("Aperçu autonome ouvert dans un nouvel onglet.");
+    syncPreviewProducts();
+    persistReleaseDraft();
+    var target = $("#storePreview");
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    announce("Aperçu actualisé. Votre site final sera hébergé après validation.");
   }
   function persistReleaseDraft() {
     try { localStorage.setItem("sama_studio_release_draft_v1", JSON.stringify(collectData())); }
@@ -564,19 +600,19 @@
     state.templateId = template.id; state.products = cloneProducts(template);
     restoreDraft(); renderProductEditor(); syncPreviewProducts();
     $("#addSiteProductBtn").addEventListener("click", function () {
-      if (state.products.length >= 30) return announce("Limite de 30 produits atteinte pour ce configurateur.");
+      if (state.products.length >= 500) return announce("Le plafond de catalogue dépend de votre formule Sama Studio.");
       state.productCounter += 1;
       state.products.push({ id:"nouveau-produit-" + state.productCounter, name:"Nouveau produit " + state.productCounter,
         category:template.sector || "Catalogue", price:"Prix sur demande", image:"", description:"Ajoute ici une description vérifiée du produit." });
       renderProductEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Produit ajouté au catalogue.");
     });
-    $("#exportWebsiteBtn").addEventListener("click", exportWebsite);
+    $("#submitForReviewBottomBtn").addEventListener("click", submitForReview);
     $("#previewWebsiteBtn").addEventListener("click", previewWebsite);
-    $("#exportConfigJsonEnhancedBtn").addEventListener("click", exportJson);
-    var exportConfigButton = $("#exportConfigBtn");
-    if (exportConfigButton) exportConfigButton.addEventListener("click", function (event) {
-      event.preventDefault(); event.stopImmediatePropagation(); exportJson();
-    }, true);
+    window.SAMA_PUBLISHER = {
+      submitForReview: submitForReview,
+      previewWebsite: previewWebsite,
+      getCurrentData: collectData
+    };
     var form = $("#projectForm");
     if (form) form.addEventListener("submit", function () { window.setTimeout(saveExtendedDraft, 0); });
     Object.keys(getExtraDefaults()).forEach(function (id) {
