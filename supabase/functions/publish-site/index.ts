@@ -275,38 +275,44 @@ Deno.serve(async (req: Request) => {
     const markerIndex = html.indexOf("window.SAMA_STORE_DATA=");
     html = html.slice(0, markerIndex) + configScript + html.slice(markerIndex);
 
+    const { data: pageRows, error: pageError } = await admin.from("site_pages")
+      .select("title,slug,content,seo_title,seo_description,show_in_menu,status,menu_order")
+      .eq("site_id", site.id).eq("organization_id", site.organization_id).eq("status", "published")
+      .order("menu_order", { ascending: true }).order("created_at", { ascending: true });
+    if (pageError) return reply(500, { error: "Impossible de charger les pages publiées." });
+    const pages = (pageRows || []).filter((page: Record<string, any>) => page.slug !== "home" && /^[a-z0-9][a-z0-9-]{0,78}[a-z0-9]$/.test(String(page.slug || "")));
+    const pageLinks = pages.filter((page: Record<string, any>) => page.show_in_menu !== false).map((page: Record<string, any>) => '<a href="/' + encodeURIComponent(String(page.slug)) + '/">' + escapePageText(page.title) + '</a>').join("");
+    if (pageLinks) html = html.replace("<body", '<body><nav aria-label="Pages du site" style="display:flex;gap:16px;flex-wrap:wrap;padding:16px;font:600 16px system-ui">' + pageLinks + "</nav><div");
+
     const { projectName, project } = await ensureProject(accountId, cfToken, site, admin);
     const publicUrl = siteUrl(project, projectName);
-    const bytes = new TextEncoder().encode(html);
-    const hash = await assetHash(bytes);
+    const assets: Record<string, { hash: string; bytes: Uint8Array; contentType: string }> = {};
+    function addHtmlAsset(path: string, body: string) {
+      const bytes = new TextEncoder().encode(body);
+      assets[path] = { hash: assetHash(bytes), bytes, contentType: "text/html; charset=utf-8" };
+    }
+    addHtmlAsset("index.html", html);
+    for (const page of pages) addHtmlAsset(String(page.slug) + "/index.html", renderSitePage(page, String(site.name || "Site"), pages));
+
     const tokenEnvelope = await cloudflareRequest(projectEndpoint(accountId, projectName) + "/upload-token", cfToken);
     const uploadToken = String(tokenEnvelope?.result?.jwt || "");
-    if (!uploadToken) throw new Error("Cloudflare n'a pas fourni de jeton de téléversement temporaire.");
-
-    await cloudflareRequest(CF_API + "/pages/assets/upsert-hashes", uploadToken, {
-      method: "POST", body: JSON.stringify({ hashes: [hash] })
-    });
-    const missingEnvelope = await cloudflareRequest(CF_API + "/pages/assets/check-missing", uploadToken, {
-      method: "POST", body: JSON.stringify({ hashes: [hash] })
-    });
-    const missing = Array.isArray(missingEnvelope?.result) ? missingEnvelope.result : [];
-    if (missing.includes(hash)) {
+    if (!uploadToken) throw new Error("Cloudflare n’a pas fourni de jeton de téléversement temporaire.");
+    const hashes = [...new Set(Object.values(assets).map((asset) => asset.hash))];
+    await cloudflareRequest(CF_API + "/pages/assets/upsert-hashes", uploadToken, { method: "POST", body: JSON.stringify({ hashes }) });
+    const missingEnvelope = await cloudflareRequest(CF_API + "/pages/assets/check-missing", uploadToken, { method: "POST", body: JSON.stringify({ hashes }) });
+    const missing = new Set(Array.isArray(missingEnvelope?.result) ? missingEnvelope.result : []);
+    const uploads = Object.values(assets).filter((asset) => missing.has(asset.hash));
+    for (let offset = 0; offset < uploads.length; offset += 10) {
       await cloudflareRequest(CF_API + "/pages/assets/upload", uploadToken, {
-        method: "POST",
-        body: JSON.stringify([{
-          base64: true,
-          key: hash,
-          metadata: { contentType: "text/html; charset=utf-8" },
-          value: base64(bytes)
-        }])
+        method: "POST", body: JSON.stringify(uploads.slice(offset, offset + 10).map((asset) => ({ base64: true, key: asset.hash, metadata: { contentType: asset.contentType }, value: base64(asset.bytes) })))
       });
     }
-
+    const manifest = Object.fromEntries(Object.entries(assets).map(([path, asset]) => [path, asset.hash]));
     const form = new FormData();
-    form.set("manifest", JSON.stringify({ "index.html": hash }));
+    form.set("manifest", JSON.stringify(manifest));
     form.set("branch", "main");
     form.set("commit_dirty", "true");
-    form.set("commit_message", "Sama Studio publication " + site.slug);
+    form.set("commit_message", "Sama Studio publication " + site.slug + " (" + pages.length + " pages)");
     const deployEnvelope = await cloudflareRequest(projectEndpoint(accountId, projectName) + "/deployments", cfToken, {
       method: "POST", body: form
     });
