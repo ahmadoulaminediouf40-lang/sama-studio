@@ -620,7 +620,7 @@
       price: priceNumber(product.price),
       price_label: String(product.price || "Prix à confirmer").slice(0, 100),
       currency: "XOF",
-      stock_quantity: 0,
+      stock_quantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
       low_stock_threshold: 5,
       is_active: true,
       is_demo: Boolean(product.isExample)
