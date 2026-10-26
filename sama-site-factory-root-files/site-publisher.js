@@ -965,7 +965,7 @@
     $("#closePageEditorBtn").addEventListener("click", closePageWorkspace);
     $("#savePageEditorBtn").addEventListener("click", savePageWorkspace);
     $("#savePageEditorBottomBtn").addEventListener("click", savePageWorkspace);
-    $("#pageEditorPreviewBtn").addEventListener("click", function () { savePageWorkspace(); if (state.pages.length) announce("La page est actualisée dans l’aperçu du modèle."); });
+    $("#pageEditorPreviewBtn").addEventListener("click", function () { savePageWorkspace(); previewWebsite(); });
     $(".page-editor-toolbar").addEventListener("click", function (event) { var button = event.target.closest("button[data-page-command]"); if (!button) return; $("#pageRichContent").focus(); document.execCommand(button.dataset.pageCommand, false, button.dataset.pageValue || null); });
     $("#pageInsertLinkBtn").addEventListener("click", function () { var url = window.prompt("Adresse du lien (https://…, mailto: ou tel:)"); if (!url || !/^(https?:\/\/|mailto:|tel:)/i.test(url.trim())) return; $("#pageRichContent").focus(); document.execCommand("createLink", false, url.trim()); });
     $("#createRevisionBtn").addEventListener("click", function () { revisionSnapshot("Version manuelle"); });
