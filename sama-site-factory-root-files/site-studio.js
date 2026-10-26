@@ -424,15 +424,53 @@
     preview.addEventListener("click", (event) => {
       const action = event.target.closest("[data-preview-action]");
       if (!action) return;
-      event.preventDefault();
       const task = action.dataset.previewAction;
-      if (task === "contact") {
-        const phone = fields.whatsapp.value.trim() || fields.phone.value.trim();
-        notify(phone ? `Contact configuré : ${phone}.` : "Ajoutez un téléphone ou un WhatsApp pour votre site.");
-      } else if (task === "navigation") {
-        notify("La navigation du site final sera générée à partir du modèle choisi.");
-      } else {
-        notify("Cette action sera activée sur votre site après validation.");
+      const scrollTo = (selector) => {
+        const target = preview.querySelector(selector);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+      if (task === "navigation") {
+        const link = action.closest("a");
+        if (link && link.hash) {
+          const target = preview.querySelector(link.hash);
+          if (target) {
+            event.preventDefault();
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+        return;
+      }
+      event.preventDefault();
+      if (task === "primary" || task === "catalog") {
+        scrollTo("#storeMain");
+        return;
+      }
+      if (task === "secondary" || task === "contact") {
+        if (task === "contact") {
+          const whatsapp = fields.whatsapp.value.trim();
+          const phone = fields.phone.value.trim();
+          const digits = whatsapp.replace(/\\D/g, "");
+          if (digits) {
+            window.open("https://wa.me/" + (digits.length === 9 ? "221" + digits : digits), "_blank", "noopener,noreferrer");
+            return;
+          }
+          if (phone) {
+            window.location.href = "tel:" + phone.replace(/[^\\d+]/g, "");
+            return;
+          }
+          notify("Ajoutez un numéro de téléphone ou WhatsApp pour activer le contact.");
+          return;
+        }
+        scrollTo(".store-footer");
+        return;
+      }
+      if (task === "card") {
+        const card = action.closest(".store-card");
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "center" });
+          const title = card.querySelector("h3")?.textContent || "Cet article";
+          notify(title + " — ouvrez « Voir mon aperçu » pour tester le parcours complet du site.");
+        }
       }
     });
   }
