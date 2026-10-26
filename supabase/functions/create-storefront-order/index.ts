@@ -6,7 +6,8 @@ async function fingerprint(value:string){const digest=await crypto.subtle.digest
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return reply(405,{error:"Method not allowed"});
- const url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+ const url=Deno.env.get("SUPABASE_URL");
+ const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||Deno.env.get("SUPABASE_SECRET_KEY")||(()=>{try{const keys=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}");return typeof keys.default==="string"?keys.default:"";}catch{return "";}})();
  if(!url||!service)return reply(500,{error:"Order API is not configured."});
  if(Number(req.headers.get("content-length")||"0")>35000)return reply(413,{error:"Commande trop volumineuse."});
  let body:Record<string,unknown>;try{body=await req.json();}catch{return reply(400,{error:"Corps JSON invalide."});}
