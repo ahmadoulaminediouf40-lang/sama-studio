@@ -565,7 +565,7 @@
     const { data, error } = await state.supabase.from("organization_memberships")
       .select("organization_id,role,created_at").eq("user_id", state.user.id).order("created_at", { ascending: true });
     if (error) throw error;
-    const existing = (data || []).find(item => ["owner", "admin"].includes(item.role));
+    const existing = (data || []).find(item => item.role === "owner");
     if (existing) return existing.organization_id;
     const name = String(businessName || state.user.user_metadata?.full_name || "Mon entreprise Sama Studio").trim().slice(0, 120);
     const { data: orgId, error: createError } = await state.supabase.rpc("create_organization", {
