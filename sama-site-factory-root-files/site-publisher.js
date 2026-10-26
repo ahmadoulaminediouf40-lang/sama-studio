@@ -176,6 +176,9 @@
       bottom.appendChild(action); content.appendChild(bottom);
       card.appendChild(imageWrap); card.appendChild(content); grid.appendChild(card);
     });
+    var heroImage = preview && $(".store-preview .hero-image", preview);
+    var customHero = safeImageUrl(fieldValue("heroImageUrl"));
+    if (heroImage && customHero) heroImage.src = customHero;
     var siteRoot = preview && $(".store-main", preview);
     if (siteRoot) {
       var oldPages = $(".store-preview-pages", siteRoot); if (oldPages) oldPages.remove();
