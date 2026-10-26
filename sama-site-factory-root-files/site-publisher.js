@@ -180,7 +180,8 @@
         whatsapp: fieldValue("businessWhatsapp"), email: fieldValue("businessEmail"), address: fieldValue("businessAddress"),
         description: fieldValue("businessDescription") || template.body || "", hours: fieldValue("businessHours"),
         delivery: fieldValue("businessDelivery"), instagram: safeUrl(fieldValue("businessInstagram")),
-        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeUrl(fieldValue("logoUrl"))
+        facebook: safeUrl(fieldValue("businessFacebook")), logoUrl: safeUrl(fieldValue("logoUrl")),
+        seoTitle: fieldValue("seoTitle").slice(0, 70), seoDescription: fieldValue("seoDescription").slice(0, 170)
       },
       design: {
         primaryColor: /^#[0-9a-f]{6}$/i.test(fieldValue("brandColor")) ? fieldValue("brandColor") : template.color,
@@ -562,9 +563,10 @@
     var css = clientCss(), json = JSON.stringify(data).replace(/</g, "\\u003c"), page = [];
     page.push('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">');
     page.push('<meta name="theme-color" content="' + escapeHtml(data.design.primaryColor) + '">');
-    page.push('<meta name="description" content="' + escapeHtml(String(data.business.headline || data.business.description || data.business.name).slice(0, 155)) + '">');
-    page.push('<meta property="og:title" content="' + escapeHtml(data.business.name) + '"><meta property="og:description" content="' + escapeHtml(data.business.headline || data.business.description || data.business.name) + '">');
-    page.push('<title>' + escapeHtml(data.business.name) + ' | ' + escapeHtml(data.template.sector) + '</title><style>' + css + '</style></head><body>');
+    page.push('<meta name="description" content="' + escapeHtml(String(data.business.seoDescription || data.business.headline || data.business.description || data.business.name).slice(0, 170)) + '">');
+    page.push('<meta property="og:title" content="' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '"><meta property="og:description" content="' + escapeHtml(data.business.seoDescription || data.business.headline || data.business.description || data.business.name) + '">');
+    if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeUrl(data.template.heroImage)) + '">');
+    page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css + '</style></head><body>');
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
     page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a><a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
     page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
