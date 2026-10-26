@@ -9,7 +9,8 @@ with check (
   public.has_org_role(organization_id, array['owner','admin','staff'])
   and created_by = (select auth.uid())
   and status = 'draft'
-  and netlify_site_id is null
+  and cloudflare_project_name is null
+  and cloudflare_deployment_id is null
   and published_url is null
   and published_at is null
 );
