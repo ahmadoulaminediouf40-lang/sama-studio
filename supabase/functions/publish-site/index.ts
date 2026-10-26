@@ -142,6 +142,7 @@ async function markPublished(admin: any, siteId: string, html: string, projectNa
   if (error) throw new Error("Le site est en ligne, mais le statut n'a pas pu être enregistré. Réessaie la publication.");
 }
 
+// Static multi-page publishing is handled in this deployment function.
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
