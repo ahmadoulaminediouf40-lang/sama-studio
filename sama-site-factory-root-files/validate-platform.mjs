@@ -8,8 +8,13 @@ for(const asset of ["site-release.css","site-templates.js","site-studio.js","sit
 const templates=readFileSync(join(root,"site-templates.js"),"utf8");
 for(const id of ["distribution","fashion","beauty","electronics","home","grocery","restaurant","bakery","services","realestate"])assert.ok(templates.includes('id: "'+id+'"'),"Missing template "+id);
 assert.ok(!/sama[\s_-]*pack/i.test(templates), "SAMA-PACK must not be present in the platform templates.");
+for(const marker of ["useCase:","recommendedPages:","managementModules:","customerJourney:","orderMode:"])assert.ok(templates.includes(marker),"Missing template context "+marker);
+const studioSource=readFileSync(join(root,"site-studio.js"),"utf8");
+for(const marker of ["gallery-card-context","selectedTemplateContext","managementModules"])assert.ok(studioSource.includes(marker),"Missing template guidance "+marker);
 const publisher=readFileSync(join(root,"site-publisher.js"),"utf8");
-for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","wa.me/","create-storefront-order","customerPhone","sitePagesEditor","siteMediaGrid","siteRevisionList","custom-content-section","safeImageUrl"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
+for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","create-storefront-order","customerPhone","sitePagesEditor","siteMediaGrid","siteRevisionList","custom-content-section","safeImageUrl"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
+const checkoutStart=publisher.indexOf("async function checkout()");const checkoutEnd=publisher.indexOf("function setBusinessContent()",checkoutStart);assert.ok(checkoutStart>=0&&checkoutEnd>checkoutStart&&!publisher.slice(checkoutStart,checkoutEnd).includes("wa.me/"),"Storefront checkout must not redirect to WhatsApp.");
+for(const marker of ["retrouvera dans son espace de gestion","Les commandes en ligne ne sont pas encore activées"])assert.ok(publisher.includes(marker),"Missing website-only checkout behavior "+marker);
 const dashboard=readFileSync(join(root,"sama-dashboard.html"),"utf8");
 for(const marker of ["sama-dashboard.css","sama-dashboard.js","site-content-cms.js","cmsSiteSelect","cmsPageForm","cmsMediaInput","cmsSaveRevisionBtn","organizationSelect","productsTableWrap","ordersTableWrap"])assert.ok(dashboard.includes(marker),"Missing dashboard component "+marker);
 const sql=readFileSync(join(root,"../supabase/migrations/202610260001_sama_studio_multi_tenant.sql"),"utf8");
