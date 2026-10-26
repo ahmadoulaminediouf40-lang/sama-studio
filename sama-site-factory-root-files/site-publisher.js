@@ -341,8 +341,9 @@
       var message = "Bonjour " + D.business.name + ", je souhaite passer cette commande :\n" + entries.join("\n") +
         "\n\nNom : \nAdresse ou quartier : \nMode de livraison : \nMerci.";
       var url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
-      var win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) window.location.href = url;
+      var win = window.open(url, "_blank");
+      if (win) win.opener = null;
+      else window.location.href = url;
     }
     function setBusinessContent() {
       var logo = byId("siteLogo");
@@ -465,7 +466,8 @@
   function previewWebsite() {
     var html = prepareClientHtml(); if (!html) return;
     var url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
-    var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.click();
+    var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.style.display = "none";
+    document.body.appendChild(link); link.click(); link.remove();
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     persistReleaseDraft(); announce("Aperçu autonome ouvert dans un nouvel onglet.");
   }
@@ -511,6 +513,17 @@
     Object.keys(getExtraDefaults()).forEach(function (id) {
       var input = field(id);
       if (input) { input.addEventListener("input", persistReleaseDraft); input.addEventListener("change", persistReleaseDraft); }
+    });
+
+    var resetButton = $("#resetConfigBtn");
+    if (resetButton) resetButton.addEventListener("click", function () {
+      state.products = cloneProducts(activeTemplate());
+      Object.keys(getExtraDefaults()).forEach(function (id) {
+        if (field(id)) field(id).value = getExtraDefaults()[id];
+      });
+      renderProductEditor();
+      syncPreviewProducts();
+      persistReleaseDraft();
     });
     var selector = $("#activeTemplateName");
     if (selector && window.MutationObserver) {
