@@ -757,14 +757,18 @@
     }
     initialize();
   }
-  function buildClientHtml(data) {
+  function buildClientHtml(data, options) {
+    options = options || {};
     var css = clientCss(), json = JSON.stringify(data).replace(/</g, "\\u003c"), page = [];
     page.push('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">');
     page.push('<meta name="theme-color" content="' + escapeHtml(data.design.primaryColor) + '">');
     page.push('<meta name="description" content="' + escapeHtml(String(data.business.seoDescription || data.business.headline || data.business.description || data.business.name).slice(0, 170)) + '">');
     page.push('<meta property="og:title" content="' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '"><meta property="og:description" content="' + escapeHtml(data.business.seoDescription || data.business.headline || data.business.description || data.business.name) + '">');
     if (data.template.heroImage) page.push('<meta property="og:image" content="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '">');
-    page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css + '</style></head><body>');
+    page.push('<title>' + escapeHtml(data.business.seoTitle || (data.business.name + " | " + data.template.sector)) + '</title><style>' + css +
+      (options.previewMode ? ' .preview-mode-bar{position:sticky;top:0;z-index:10000;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px max(16px,calc((100vw - 1180px)/2));background:#102a43;color:#fff;font:600 13px/1.4 system-ui,Arial,sans-serif;box-shadow:0 5px 20px #0002}.preview-mode-bar strong{display:block;font-size:13px}.preview-mode-bar small{display:block;color:#d5e2ed;font-size:11px;font-weight:500}.preview-mode-bar a{display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:38px;padding:8px 13px;border-radius:9px;background:#fff;color:#102a43;text-decoration:none;font-weight:800}.preview-mode-bar a:hover{background:#e9f2f8}@media(max-width:560px){.preview-mode-bar{align-items:flex-start;flex-direction:column;gap:8px}.preview-mode-bar a{width:100%}}' : '') +
+      '</style></head><body>' +
+      (options.previewMode ? '<div class="preview-mode-bar"><div><strong>APERÇU DU SITE · MODE ESSAI</strong><small>Le site est interactif, mais il n’est pas publié.</small></div><a href="' + escapeHtml(String(options.returnUrl || "site-studio.html")) + '">← Retour à la configuration</a></div>' : ''));
     page.push('<header class="site-header"><div class="wrap header-inner"><a class="brand" href="#top" aria-label="Accueil"><span class="brand-mark" id="siteLogo">' + escapeHtml(String(data.business.name || "S").trim().charAt(0).toUpperCase()) + '</span><span class="brand-copy"><strong id="siteBusinessName">' + escapeHtml(data.business.name) + '</strong><small id="siteCity">' + escapeHtml([data.business.city, data.business.address].filter(Boolean).join(" · ") || "Contactez-nous") + '</small></span></a>');
     var customPages = Array.isArray(data.pages) ? data.pages.filter(function (page) { return page.visible !== false && page.title; }) : [];
     var customNav = customPages.map(function (page, index) { return '<a href="#' + escapeHtml("custom-" + safePageSlug(page.slug || page.title || ("page-" + index))) + '">' + escapeHtml(page.title) + '</a>'; }).join("");
@@ -781,7 +785,9 @@
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
     page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
     page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
-    page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script></body></html>');
+    page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script>' +
+      (options.previewMode ? '<script>document.addEventListener("click",function(event){var link=event.target.closest("a[href^=\'#\']");if(!link)return;var target=document.querySelector(link.getAttribute("href"));if(target){event.preventDefault();target.scrollIntoView({behavior:"smooth",block:"start"});}});</script>' : '') +
+      '</body></html>');
     return page.join("\n");
   }
   function validateForExport(data, requireChecklist) {
@@ -851,13 +857,31 @@
   }
 
   function previewWebsite() {
-    var refreshButton = $("#previewFromFormBtn");
-    if (refreshButton) refreshButton.click();
-    syncPreviewProducts();
+    var data;
+    try { data = collectData(); }
+    catch (error) { announce(error && error.message ? error.message : "Impossible de préparer l’aperçu."); return; }
+    if (!data || !data.template || !data.business) {
+      announce("La configuration du site est incomplète. Vérifie les informations puis réessaie.");
+      return;
+    }
     persistReleaseDraft();
-    var target = $("#storePreview");
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-    announce("Aperçu actualisé avec les dernières modifications. Le site sera hébergé après validation.");
+    var html;
+    try {
+      html = buildClientHtml(data, { previewMode: true, returnUrl: window.location.href });
+    } catch (error) {
+      announce(error && error.message ? error.message : "Impossible de générer l’aperçu complet.");
+      return;
+    }
+    var blobUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+    var previewWindow = window.open(blobUrl, "_blank");
+    if (!previewWindow) {
+      URL.revokeObjectURL(blobUrl);
+      announce("Le navigateur a bloqué le nouvel onglet. Autorise les fenêtres surgissantes puis clique de nouveau sur « Voir mon aperçu ».");
+      return;
+    }
+    previewWindow.opener = window;
+    announce("L’aperçu complet s’ouvre dans un nouvel onglet. Le site est interactif mais n’est pas publié.");
+    window.setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
   }
   function persistReleaseDraft() {
     try {
