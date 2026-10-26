@@ -477,15 +477,9 @@
     state.user = data.session?.user || null;
     state.authInitialized = true;
     state.supabase.auth.onAuthStateChange((_event, session) => {
-      const wasSignedOut = !state.user;
       state.user = session?.user || null;
       updateAuthButton();
-      if (state.user && wasSignedOut && state.pendingAction) {
-        const action = state.pendingAction;
-        state.pendingAction = null;
-        closeAuthGate();
-        Promise.resolve().then(action);
-      }
+      // The explicit submit handler consumes the pending action exactly once.
     });
     updateAuthButton();
     window.SAMA_STUDIO = {
