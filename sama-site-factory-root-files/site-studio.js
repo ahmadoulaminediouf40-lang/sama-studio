@@ -623,7 +623,7 @@
       stock_quantity: 0,
       low_stock_threshold: 5,
       is_active: true,
-      is_demo: false
+      is_demo: Boolean(product.isExample)
     }));
     if (products.length) {
       const { error: productsError } = await state.supabase.from("products").insert(products);
