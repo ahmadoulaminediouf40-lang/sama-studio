@@ -24,7 +24,7 @@ supabase link --project-ref <PROJECT_REF>
 supabase db push
 ```
 
-Le SQL complet est dans `supabase/migrations/202610260001_sama_studio_multi_tenant.sql`. Il crée les comptes de profil, organisations, memberships, sites, produits, commandes, lignes de commande, fonctions RPC, contraintes, index et politiques RLS.
+Les migrations versionnées se trouvent dans `supabase/migrations/` : `202610260001_sama_studio_multi_tenant.sql` crée les comptes de profil, organisations, memberships, sites, produits, commandes, lignes de commande, fonctions RPC, contraintes, index et politiques RLS ; `202610260002_harden_site_publish_permissions.sql` interdit à un utilisateur du navigateur de modifier le statut ou le contenu de publication directement. `supabase db push` applique les deux migrations dans l’ordre.
 
 Dans Supabase Auth, définis les URL de redirection pour le domaine hébergeant le tableau de bord. Configure le fournisseur e-mail et les paramètres de confirmation comme souhaité.
 
