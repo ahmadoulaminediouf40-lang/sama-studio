@@ -288,4 +288,4 @@ grant execute on function public.has_org_role(uuid,text[]) to authenticated;
 grant execute on function public.create_organization(text,text) to authenticated;
 grant execute on function public.update_order_status(uuid,text) to authenticated;
 grant execute on function public.create_storefront_order(text,text,text,text,text,jsonb,text) to service_role;
-commit();
+commit;
