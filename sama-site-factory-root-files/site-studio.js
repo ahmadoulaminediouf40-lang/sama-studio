@@ -15,7 +15,14 @@
     previewMode: "desktop",
     customIdentity: false,
     toastTimer: null,
-    search: ""
+    search: "",
+    supabase: null,
+    user: null,
+    authMode: "signin",
+    pendingAction: null,
+    currentSiteId: null,
+    organizationId: null,
+    authInitialized: false
   };
 
   const fields = {
@@ -288,18 +295,9 @@
 
   function saveProject(event) {
     if (event) event.preventDefault();
-    const config = currentProject();
-    try {
-      const drafts = JSON.parse(localStorage.getItem("sama_studio_drafts_v1") || "[]");
-      const next = Array.isArray(drafts) ? drafts : [];
-      next.unshift(config);
-      localStorage.setItem("sama_studio_drafts_v1", JSON.stringify(next.slice(0, 50)));
-      localStorage.setItem("sama_studio_last_project_v1", JSON.stringify(config));
-      notify("Fiche projet enregistrée dans ce navigateur.");
-      $("#projectCount").textContent = config.business.name;
-    } catch (error) {
-      notify("Le navigateur n’a pas permis l’enregistrement local. Exportez le JSON pour conserver la fiche.");
-    }
+    const submit = window.SAMA_PUBLISHER?.submitForReview;
+    if (typeof submit === "function") submit();
+    else notify("Le créateur se prépare. Réessaie dans quelques instants.");
   }
 
   function downloadJson() {
@@ -372,9 +370,20 @@
       });
     });
     form.addEventListener("submit", saveProject);
-    $("#exportConfigBtn").addEventListener("click", downloadJson);
     $("#copySummaryBtn").addEventListener("click", copySummary);
     $("#resetConfigBtn").addEventListener("click", resetConfiguration);
+    $("#previewFromFormBtn")?.addEventListener("click", renderPreview);
+    $("#submitForReviewBtn")?.addEventListener("click", () => {
+      if (typeof window.SAMA_PUBLISHER?.submitForReview === "function") window.SAMA_PUBLISHER.submitForReview();
+      else notify("Le créateur se prépare. Réessaie dans quelques instants.");
+    });
+    $("#studioAccountBtn")?.addEventListener("click", () => openAuthGate());
+    $("#authGateSignInTab")?.addEventListener("click", () => setAuthMode("signin"));
+    $("#authGateSignUpTab")?.addEventListener("click", () => setAuthMode("signup"));
+    $("#authGateSwitch")?.addEventListener("click", () => setAuthMode(state.authMode === "signin" ? "signup" : "signin"));
+    $("#authGateForm")?.addEventListener("submit", handleAuthSubmit);
+    $("[data-auth-close]").forEach(button => button.addEventListener("click", closeAuthGate));
+    document.addEventListener("keydown", event => { if (event.key === "Escape") closeAuthGate(); });
     $("#desktopPreviewBtn").addEventListener("click", () => setPreviewMode("desktop"));
     $("#mobilePreviewBtn").addEventListener("click", () => setPreviewMode("mobile"));
     $("#templateSearch").addEventListener("input", (event) => {
@@ -389,13 +398,243 @@
       const task = action.dataset.previewAction;
       if (task === "contact") {
         const phone = fields.whatsapp.value.trim() || fields.phone.value.trim();
-        notify(phone ? `Contact configuré : ${phone}. Cette action sera reliée au site final.` : "Ajoutez un téléphone ou un WhatsApp dans la configuration pour ce projet.");
+        notify(phone ? `Contact configuré : ${phone}.` : "Ajoutez un téléphone ou un WhatsApp pour votre site.");
       } else if (task === "navigation") {
-        notify("Navigation de démonstration. Les pages seront reliées lors de l’intégration du modèle.");
+        notify("La navigation du site final sera générée à partir du modèle choisi.");
       } else {
-        notify("Action de démonstration. Cette fonctionnalité sera connectée lors de la création du site client.");
+        notify("Cette action sera activée sur votre site après validation.");
       }
     });
+  }
+
+  function authMessage(message, error) {
+    const el = $("#authGateMessage");
+    if (!el) return;
+    el.textContent = message || "";
+    el.classList.toggle("error", Boolean(error));
+  }
+
+  function setAuthMode(mode) {
+    state.authMode = mode === "signup" ? "signup" : "signin";
+    const signup = state.authMode === "signup";
+    $("#authGateTitle").textContent = signup ? "Créez votre compte pour continuer." : "Connectez-vous pour enregistrer votre site.";
+    $("#authGateDescription").textContent = signup
+      ? "Votre compte vous permettra de sauvegarder le site et de suivre sa validation."
+      : "Retrouvez votre espace et reprenez votre projet là où vous en étiez.";
+    $("#authGateNameWrap").hidden = !signup;
+    $("#authGateName").required = signup;
+    $("#authGatePassword").autocomplete = signup ? "new-password" : "current-password";
+    $("#authGatePassword").minLength = 8;
+    $("#authGateSubmit").textContent = signup ? "Créer mon compte" : "Se connecter";
+    $("#authGateSignInTab").classList.toggle("active", !signup);
+    $("#authGateSignUpTab").classList.toggle("active", signup);
+    $("#authGateSwitch").textContent = signup ? "Vous avez déjà un compte ? Connectez-vous" : "Nouveau sur Sama Studio ? Créez un compte";
+    authMessage("");
+  }
+
+  function openAuthGate(action) {
+    if (typeof action === "function") state.pendingAction = action;
+    if (state.user && state.supabase) {
+      const pending = state.pendingAction;
+      state.pendingAction = null;
+      if (pending) pending();
+      return;
+    }
+    const gate = $("#authGate");
+    if (!gate) return notify("Connectez-vous depuis l’espace de gestion pour enregistrer votre site.");
+    gate.hidden = false;
+    setAuthMode(state.authMode);
+    window.setTimeout(() => $("#authGateEmail")?.focus(), 60);
+  }
+
+  function closeAuthGate() {
+    const gate = $("#authGate");
+    if (gate) gate.hidden = true;
+  }
+
+  function updateAuthButton() {
+    const button = $("#studioAccountBtn");
+    const label = $("#studioAuthState");
+    if (state.user) {
+      if (label) label.textContent = "Compte connecté";
+      if (button) button.textContent = (state.user.email || "Mon compte") + " · Connecté";
+    } else {
+      if (label) label.textContent = "Votre espace de création";
+      if (button) button.innerHTML = 'Se connecter <span aria-hidden="true">↗</span>';
+    }
+  }
+
+  async function initializeAuth() {
+    const module = await import("https://esm.sh/@supabase/supabase-js@2");
+    const createClient = module.createClient;
+    const url = "https://jubrkdxrjvkjdlodslcp.supabase.co";
+    const key = "sb_publishable_HqIc0fSxhQ9iDThqFXl55g_SJTEiM5h";
+    state.supabase = createClient(url, key, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+    const { data, error } = await state.supabase.auth.getSession();
+    if (error) throw error;
+    state.user = data.session?.user || null;
+    state.authInitialized = true;
+    state.supabase.auth.onAuthStateChange((_event, session) => {
+      const wasSignedOut = !state.user;
+      state.user = session?.user || null;
+      updateAuthButton();
+      if (state.user && wasSignedOut && state.pendingAction) {
+        const action = state.pendingAction;
+        state.pendingAction = null;
+        closeAuthGate();
+        Promise.resolve().then(action);
+      }
+    });
+    updateAuthButton();
+    window.SAMA_STUDIO = {
+      get supabase() { return state.supabase; },
+      get user() { return state.user; },
+      get currentSiteId() { return state.currentSiteId; },
+      set currentSiteId(value) { state.currentSiteId = value; },
+      withAuth(action) { if (state.user && state.supabase) return action(); openAuthGate(action); return null; },
+      openAuthGate,
+      notify,
+      saveForReview
+    };
+  }
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    if (!state.supabase) return authMessage("Connexion en cours. Réessaie dans quelques instants.", true);
+    const button = $("#authGateSubmit");
+    const email = $("#authGateEmail").value.trim();
+    const password = $("#authGatePassword").value;
+    const name = $("#authGateName").value.trim();
+    const signup = state.authMode === "signup";
+    button.disabled = true;
+    const oldText = button.textContent;
+    button.textContent = signup ? "Création du compte…" : "Connexion…";
+    authMessage("");
+    try {
+      if (signup) {
+        const { data, error } = await state.supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: name } }
+        });
+        if (error) throw error;
+        if (data.session && data.user) {
+          state.user = data.user;
+          updateAuthButton();
+          closeAuthGate();
+          const pending = state.pendingAction;
+          state.pendingAction = null;
+          if (pending) await pending();
+        } else {
+          authMessage("Votre compte a été créé. Vérifiez votre boîte e-mail pour confirmer l’adresse, puis revenez vous connecter. Votre configuration reste dans cette page.", false);
+        }
+      } else {
+        const { data, error } = await state.supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        state.user = data.user;
+        updateAuthButton();
+        closeAuthGate();
+        const pending = state.pendingAction;
+        state.pendingAction = null;
+        if (pending) await pending();
+      }
+    } catch (error) {
+      let message = String(error?.message || error);
+      if (/invalid login credentials/i.test(message)) message = "Adresse e-mail ou mot de passe incorrect.";
+      else if (/email not confirmed/i.test(message)) message = "Confirmez d’abord votre adresse e-mail depuis le message reçu.";
+      else if (/password should be at least/i.test(message)) message = "Choisissez un mot de passe d’au moins 8 caractères.";
+      authMessage(message.slice(0, 260), true);
+    } finally {
+      button.disabled = false;
+      button.textContent = oldText;
+    }
+  }
+
+  function slugBase(value) {
+    return String(value || "site-client").normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 46) || "site-client";
+  }
+
+  function priceNumber(value) {
+    const matches = String(value || "").replace(/\\u00a0/g, " ").match(/\\d[\\d\\s.,]*/);
+    if (!matches) return 0;
+    const n = Number(matches[0].replace(/[^0-9]/g, ""));
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+
+  async function ensureOrganization(businessName) {
+    const { data, error } = await state.supabase.from("organization_memberships")
+      .select("organization_id,role,created_at").eq("user_id", state.user.id).order("created_at", { ascending: true });
+    if (error) throw error;
+    const existing = (data || []).find(item => ["owner", "admin"].includes(item.role));
+    if (existing) return existing.organization_id;
+    const name = String(businessName || state.user.user_metadata?.full_name || "Mon entreprise Sama Studio").trim().slice(0, 120);
+    const { data: orgId, error: createError } = await state.supabase.rpc("create_organization", {
+      p_name: name.length >= 2 ? name : "Mon entreprise",
+      p_slug: slugBase(name)
+    });
+    if (createError) throw createError;
+    if (!orgId) throw new Error("Impossible de créer votre espace entreprise.");
+    return orgId;
+  }
+
+  async function saveForReview(data, html) {
+    if (!state.user || !state.supabase) throw new Error("Connectez-vous avant d’enregistrer le site.");
+    if (!data?.business?.name || data.business.name.toLowerCase() === "votre entreprise") throw new Error("Indiquez le vrai nom de votre entreprise.");
+    if (!Array.isArray(data.products) || data.products.length < 1) throw new Error("Ajoutez au moins un produit à votre catalogue.");
+    if (data.products.some(product => !String(product.name || "").trim())) throw new Error("Chaque produit doit avoir un nom.");
+    if (new TextEncoder().encode(html).length > 2900000) throw new Error("Le contenu du site est trop volumineux. Réduisez la taille de l’image ou les descriptions.");
+    const organizationId = await ensureOrganization(data.business.name);
+    const slug = slugBase(data.business.name) + "-" + Date.now().toString(36).slice(-5);
+    const now = new Date().toISOString();
+    const { data: site, error } = await state.supabase.from("sites").insert({
+      organization_id: organizationId,
+      name: String(data.business.name).trim().slice(0, 120),
+      slug,
+      template_id: String(data.template?.id || "distribution").slice(0, 80),
+      status: "draft",
+      review_status: "pending",
+      review_note: null,
+      submitted_at: now,
+      html_content: html,
+      created_by: state.user.id
+    }).select("id,name,slug,review_status,submitted_at").single();
+    if (error) throw error;
+    const products = data.products.slice(0, 500).map((product, index) => ({
+      organization_id: organizationId,
+      site_id: site.id,
+      external_ref: String(product.id || ("product-" + (index + 1))).slice(0, 180),
+      name: String(product.name || "Produit").trim().slice(0, 180),
+      category: String(product.category || "Catalogue").trim().slice(0, 100),
+      description: String(product.description || "").slice(0, 1000),
+      image_url: safeUrl(product.image || ""),
+      price: priceNumber(product.price),
+      price_label: String(product.price || "Prix à confirmer").slice(0, 100),
+      currency: "XOF",
+      stock_quantity: 0,
+      low_stock_threshold: 5,
+      is_active: true,
+      is_demo: false
+    }));
+    if (products.length) {
+      const { error: productsError } = await state.supabase.from("products").insert(products);
+      if (productsError) {
+        await state.supabase.from("sites").delete().eq("id", site.id);
+        throw productsError;
+      }
+    }
+    state.currentSiteId = site.id;
+    $("#projectCount").textContent = site.name;
+    $("#projectSavedState").textContent = "Demande envoyée · En attente de validation";
+    $("#studioToast").textContent = "Site enregistré ! SAMA Studio a reçu une demande de validation. Vous pourrez suivre le statut depuis votre espace.";
+    $("#studioToast").classList.add("visible");
+    const submitButtons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
+    submitButtons.forEach(button => { button.disabled = true; button.textContent = "Demande envoyée"; });
+    const { data: adminNotifications } = await state.supabase.from("site_review_notifications")
+      .select("id").eq("recipient_id", state.user.id).limit(0);
+    return site;
   }
 
   function init() {
@@ -413,6 +652,11 @@
     renderTemplateGallery();
     updateSelectedTemplateInfo();
     renderPreview();
+    initializeAuth().catch(error => {
+      console.error("Sama Studio Auth :", error);
+      $("#studioAuthState").textContent = "Connexion indisponible";
+      authMessage("La connexion sécurisée n’a pas pu démarrer. Rechargez la page.", true);
+    });
   }
 
   document.addEventListener("DOMContentLoaded", init);
