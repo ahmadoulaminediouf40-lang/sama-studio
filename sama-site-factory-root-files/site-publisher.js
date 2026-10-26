@@ -80,20 +80,19 @@
   }
   function addReleasePanel() {
     var panel = create("section", "release-panel");
-    panel.setAttribute("aria-label", "Préparer et exporter le site client");
+    panel.setAttribute("aria-label", "Enregistrer le site et demander sa validation");
     panel.innerHTML =
-      '<div class="release-panel-heading"><div><span class="eyebrow">ÉTAPE 03</span><h2>Site client prêt à livrer</h2></div><span class="release-pill">HTML autonome</span></div>' +
-      '<p class="release-intro">Personnalise le catalogue, puis génère un site responsive que tu peux remettre au client et héberger sur un service statique.</p>' +
-      '<div class="release-capability-row"><span>✓ Design adaptatif</span><span>✓ Panier fonctionnel</span><span>✓ Commandes WhatsApp</span></div>' +
-      '<details class="product-editor-details" open><summary><span>Catalogue produits</span><small id="releaseProductCount">3 produits</small></summary>' +
-      '<p class="release-help">Les produits ci-dessous sont des exemples. Remplace les noms, tarifs, images et descriptions par les informations confirmées du client.</p>' +
+      '<div class="release-panel-heading"><div><span class="eyebrow">ÉTAPE 03</span><h2>Enregistrer & faire valider</h2></div><span class="release-pill">100 % en ligne</span></div>' +
+      '<p class="release-intro">Votre site sera sauvegardé dans votre compte Sama Studio. Notre équipe le vérifiera avant de l’activer. Aucun fichier HTML à télécharger, aucun hébergement à configurer vous-même.</p>' +
+      '<div class="release-capability-row"><span>✓ Aperçu instantané</span><span>✓ Sauvegarde sécurisée</span><span>✓ Validation humaine</span></div>' +
+      '<details class="product-editor-details" open><summary><span>Votre catalogue de produits</span><small id="releaseProductCount">3 produits</small></summary>' +
+      '<p class="release-help">Remplacez les exemples par vos produits réels. Pour chaque article, renseignez un nom, un prix, une image et une description claire. La capacité du catalogue dépendra de votre formule.</p>' +
       '<div id="siteProductsEditor" class="site-products-editor"></div>' +
       '<button id="addSiteProductBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter un produit</button></details>' +
-      '<div class="release-export-actions"><button id="exportWebsiteBtn" class="btn btn-primary btn-full" type="button">↓ Télécharger le site client (.html)</button>' +
-      '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Prévisualiser le site client</button>' +
-      '<button id="exportConfigJsonEnhancedBtn" class="text-button" type="button">Exporter la fiche complète (JSON)</button></div>' +
-      '<div class="release-disclaimer"><strong>Avant livraison</strong><p>Renseigne le numéro WhatsApp au format international, vérifie tous les prix et remplace les contenus de démonstration. Le site exporté prend les commandes via WhatsApp ; il n’intègre pas de paiement en ligne ni de gestion serveur des stocks.</p></div>' +
-      '<label class="release-confirmation"><input id="releaseChecklistConfirmed" type="checkbox"><span><strong>Contrôle final effectué</strong><small>J’ai vérifié l’identité, les prix, les coordonnées, les disponibilités et les droits d’utilisation des images.</small></span></label>';
+      '<div class="release-export-actions"><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
+      '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Voir mon aperçu</button></div>' +
+      '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>' +
+      '<label class="release-confirmation"><input id="releaseChecklistConfirmed" type="checkbox"><span><strong>J’ai vérifié les informations</strong><small>Les prix, produits, coordonnées et images sont exacts et peuvent être utilisés sur mon site.</small></span></label>';
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
     releasePanel = panel; productEditor = $("#siteProductsEditor", panel);
