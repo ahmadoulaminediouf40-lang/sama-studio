@@ -99,7 +99,7 @@
       '<p class="release-help">Ajoutez des pages ou sections navigables : présentation, services, FAQ, livraison ou conditions.</p>' +
       '<div id="sitePagesEditor" class="site-pages-editor"></div><button id="addSitePageBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter une page</button></details>' +
       '<details class="editor-section"><summary><span>Médiathèque</span><small id="mediaCount">0 image</small></summary>' +
-      '<p class="release-help">Importez des images et réutilisez-les comme logo, bannière ou image du premier produit. PNG, JPEG, WebP ou GIF, 250 Ko maximum par image.</p>' +
+      '<p class="release-help">Importez des images et réutilisez-les comme logo, bannière ou image du premier produit. PNG, JPEG, WebP ou GIF, 150 Ko maximum par image.</p>' +
       '<label class="media-upload-label">Importer des images<input id="mediaUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>' +
       '<div id="siteMediaGrid" class="site-media-grid"></div></details>' +
       '<details class="editor-section"><summary><span>Versions et restauration</span><small id="revisionCount">0 version</small></summary>' +
@@ -276,18 +276,18 @@
   function handleMediaUpload(event) {
     var files = Array.from(event.target.files || []);
     if (!files.length) return;
-    var queue = files.slice(0, Math.max(0, 6 - state.media.length));
-    if (!queue.length) { announce("La médiathèque est limitée à 6 images par projet."); event.target.value = ""; return; }
+    var queue = files.slice(0, Math.max(0, 4 - state.media.length));
+    if (!queue.length) { announce("La médiathèque est limitée à 4 images par projet."); event.target.value = ""; return; }
     var pending = queue.length, added = 0;
     queue.forEach(function (file) {
-      if (!/^image\/(?:png|jpeg|webp|gif)$/.test(file.type) || file.size > 250 * 1024) {
+      if (!/^image\/(?:png|jpeg|webp|gif)$/.test(file.type) || file.size > 150 * 1024) {
         pending -= 1;
         if (!pending) { renderMediaLibrary(); persistReleaseDraft(); announce(added ? added + " image(s) importée(s). Les fichiers refusés dépassent 250 Ko ou ont un format non pris en charge." : "Choisissez des images PNG, JPEG, WebP ou GIF de 250 Ko maximum."); }
         return;
       }
       var reader = new FileReader();
       reader.onload = function () {
-        if (state.media.length < 6 && typeof reader.result === "string") {
+        if (state.media.length < 4 && typeof reader.result === "string") {
           state.media.push({ id: "media-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), name: file.name.slice(0, 120), dataUrl: reader.result });
           added += 1;
         }
@@ -825,7 +825,7 @@
         return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeImageUrl(p.image), description:p.description || "", stockQuantity:Math.max(0,Math.min(999999,Math.floor(Number(p.stockQuantity)||0))), customized:p.isExample===false || Boolean(p.customized) };
       });
       if (Array.isArray(saved.pages)) state.pages = saved.pages.map(function (page) { return Object.assign({}, page); });
-      if (Array.isArray(saved.media)) state.media = saved.media.filter(function (item) { return item && /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(item.dataUrl || ""); }).slice(0, 6);
+      if (Array.isArray(saved.media)) state.media = saved.media.filter(function (item) { return item && /^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(item.dataUrl || ""); }).slice(0, 4);
       if (saved.template && saved.template.heroImage && field("heroImageUrl")) field("heroImageUrl").value = saved.template.heroImage;
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
