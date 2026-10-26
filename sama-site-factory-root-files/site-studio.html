@@ -17,9 +17,19 @@
         <span class="brand-wordmark">SAMA<span>STUDIO</span><small>Sites professionnels</small></span>
       </a>
       <div class="header-center"><span class="status-dot"></span> Espace de conception <span class="header-divider"></span><strong>10 modèles disponibles</strong></div>
-      <div class="studio-account"><span id="studioAuthState" class="studio-auth-state">Mode découverte</span><button id="studioAccountBtn" class="header-link" type="button">Se connecter <span aria-hidden="true">↗</span></button></div>
+      <div class="studio-account"><a class="studio-back-link" href="./sama-dashboard.html" aria-label="Retour au tableau de bord">← <span>Mon espace</span></a><span id="studioAuthState" class="studio-auth-state">Mode découverte</span><button id="studioAccountBtn" class="header-link" type="button">Se connecter <span aria-hidden="true">↗</span></button></div>
     </header>
 
+    <nav class="studio-guide" aria-label="Étapes de création du site">
+      <div class="studio-guide-intro"><strong>Créons ton site en 3 étapes</strong><span>Tu peux revenir à une étape précédente à tout moment.</span></div>
+      <div class="studio-guide-steps">
+        <button type="button" class="studio-step active" data-studio-step="models" aria-current="step"><span>1</span><span><strong>Modèle</strong><small>Choisir le design</small></span></button>
+        <span class="studio-step-connector" aria-hidden="true"></span>
+        <button type="button" class="studio-step" data-studio-step="customize"><span>2</span><span><strong>Personnalisation</strong><small>Nom, couleurs, contact</small></span></button>
+        <span class="studio-step-connector" aria-hidden="true"></span>
+        <button type="button" class="studio-step" data-studio-step="products"><span>3</span><span><strong>Contenu et envoi</strong><small>Produits, pages, validation</small></span></button>
+      </div>
+    </nav>
     <main id="top" class="studio-layout">
       <aside class="template-sidebar" aria-label="Modèles disponibles">
         <div class="sidebar-heading"><span class="eyebrow">BIBLIOTHÈQUE</span><h2>Modèles</h2><p>Un modèle pensé pour chaque activité.</p></div>
@@ -30,7 +40,7 @@
 
       <section class="studio-main" aria-label="Aperçu du site">
         <div class="page-heading">
-          <div><span class="eyebrow">CONFIGURATEUR DE SITES</span><h1>Choisis un modèle.<br><span>Construis une offre.</span></h1><p>Explore les modèles, personnalise votre site et vos produits, puis envoie-le à SAMA Studio pour validation.</p></div>
+          <div><span class="eyebrow">ÉTAPE 1 · CHOISIS TON MODÈLE</span><h1>Ton site commence ici.</h1><p>Choisis le modèle qui correspond à ton activité. Ensuite, personnalise les informations et les produits. Tu peux revenir en arrière à tout moment.</p><button class="btn btn-primary studio-heading-next" type="button" data-studio-step="customize">Personnaliser ce modèle <span aria-hidden="true">→</span></button></div>
           <div class="project-pill"><span class="project-pill-icon" aria-hidden="true">◈</span><span><strong id="projectCount">Nouveau projet</strong><small id="projectSavedState">Aucune sauvegarde pour le moment</small></span></div>
         </div>
 
@@ -55,7 +65,7 @@
       </section>
 
       <aside class="configuration-panel" aria-label="Personnaliser le projet">
-        <div class="config-top"><div><span class="eyebrow">ÉTAPE 02</span><h2>Personnalisation</h2></div><span class="config-number">02 / 02</span></div>
+        <div class="config-top"><div><span class="eyebrow">ÉTAPE 2 SUR 3</span><h2>Personnalise ton site</h2></div><span class="config-number">2 / 3</span></div><p class="studio-panel-help">Commence par les informations essentielles. Les champs indiqués « facultatif » peuvent être complétés plus tard.</p>
         <div class="selected-template-card"><div id="selectedTemplateGlyph" class="selected-template-glyph">CD</div><div><strong id="selectedTemplateTitle">Commerce & distribution</strong><small id="selectedTemplateDescription">Catalogue, panier et commandes.</small></div><button id="resetConfigBtn" class="icon-reset" type="button" title="Réinitialiser la configuration" aria-label="Réinitialiser la configuration">↺</button></div>
 
         <form id="projectForm" class="project-form">
@@ -75,13 +85,13 @@
           <label>Description Google <span class="optional-label">facultatif · 160 caractères conseillés</span><textarea id="seoDescription" name="seoDescription" rows="3" maxlength="170" placeholder="Décrivez votre entreprise en une phrase claire pour les résultats de recherche."></textarea></label>
           <p class="seo-help">Ces informations servent au titre et à la description affichés dans les moteurs de recherche et lors du partage du lien. Elles ne garantissent pas un meilleur classement.</p>
 
-          <div class="config-note"><span aria-hidden="true">ⓘ</span><p>Les modifications s’affichent dans l’aperçu. Connectez-vous pour sauvegarder votre site en ligne et demander sa validation.</p></div>
+          <div class="config-note"><span aria-hidden="true">ⓘ</span><p>Les changements s’affichent dans l’aperçu au centre. Les champs marqués « facultatif » ne sont pas obligatoires.</p></div>
           <button id="submitForReviewBtn" class="btn btn-primary btn-full" type="button"><span aria-hidden="true">↗</span> Enregistrer et demander validation</button>
           <button class="btn btn-secondary btn-full" id="previewFromFormBtn" type="button"><span aria-hidden="true">▱</span> Actualiser l’aperçu</button>
-          <button class="text-button" id="copySummaryBtn" type="button">Copier le résumé du projet</button>
+          <button class="text-button" id="copySummaryBtn" type="button">Copier le résumé du projet</button><button class="btn btn-secondary btn-full studio-next-step" type="button" data-studio-step="products">Continuer : produits et pages <span aria-hidden="true">→</span></button>
         </form>
 
-        <div class="config-footer"><span class="lock-icon" aria-hidden="true">⌑</span><span>Votre projet est sauvegardé en ligne. SAMA Studio valide le site avant sa publication.</span></div>
+        <div class="config-footer"><span class="lock-icon" aria-hidden="true">⌑</span><span>Ton site ne sera publié qu’après l’envoi de la demande et la validation par SAMA Studio.</span></div>
       </aside>
     </main>
 
@@ -105,7 +115,7 @@
       </div>
     </section>
     <div id="studioToast" class="studio-toast" role="status" aria-live="polite"></div>
-    <footer class="studio-footer"><span>© <span id="currentYear"></span> Sama Studio</span><span>Prototype interne de sélection de modèles · Version 1.0</span></footer>
+    <footer class="studio-footer"><span>© <span id="currentYear"></span> Sama Studio</span><span>Création guidée · Tu peux revenir aux étapes précédentes.</span></footer>
   </div>
   <script src="site-templates.js"></script>
   <script src="site-studio.js"></script>

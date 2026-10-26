@@ -105,7 +105,7 @@
       '<details class="editor-section"><summary><span>Versions et restauration</span><small id="revisionCount">0 version</small></summary>' +
       '<p class="release-help">Créez un point de restauration avant une modification importante. Les versions sont conservées dans ce navigateur.</p>' +
       '<button id="createRevisionBtn" class="btn btn-secondary btn-full" type="button">Créer une version maintenant</button><div id="siteRevisionList" class="site-revision-list"></div></details>' +
-      '<div class="release-export-actions"><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
+      '<div class="release-export-actions"><button id="backToCustomizationBtn" class="btn btn-secondary btn-full" type="button" data-studio-step="customize">← Retour à la personnalisation</button><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
       '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Voir mon aperçu</button></div>' +
       '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>' +
       '<label class="release-confirmation"><input id="releaseChecklistConfirmed" type="checkbox"><span><strong>J’ai vérifié les informations</strong><small>Les prix, produits, coordonnées et images sont exacts et peuvent être utilisés sur mon site.</small></span></label>';
