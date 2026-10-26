@@ -50,7 +50,8 @@
         id: "produit-" + (index + 1), name: card.title || "Produit " + (index + 1),
         category: card.type || template.sector || "Catalogue", price: card.price || "Prix sur demande",
         image: safeUrl(card.image || ""),
-        description: (card.type || template.sector || "Produit") + ". Contactez-nous pour confirmer le stock et les détails.",
+        description: (card.type || template.sector || "Produit") + ". Contactez-nous pour confirmer les détails.",
+        stockQuantity: 0,
         customized: false
       };
     });
@@ -101,7 +102,7 @@
   function productInput(labelText, key, value, index, placeholder) {
     var label = create("label", "product-field", labelText), input;
     if (key === "description") { input = create("textarea"); input.rows = 2; input.maxLength = 350; }
-    else { input = create("input"); input.type = key === "image" ? "url" : "text"; input.maxLength = key === "image" ? 500 : key === "name" ? 90 : 100; }
+    else { input = create("input"); input.type = key === "image" ? "url" : key === "stockQuantity" ? "number" : "text"; input.maxLength = key === "image" ? 500 : key === "name" ? 90 : 100; if (key === "stockQuantity") { input.min = "0"; input.max = "999999"; input.step = "1"; } }
     input.value = value || ""; input.placeholder = placeholder || "";
     input.dataset.productIndex = String(index); input.dataset.productKey = key;
     input.addEventListener("input", function () {
@@ -135,6 +136,7 @@
       card.appendChild(double);
       card.appendChild(productInput("Description", "description", product.description, index, "Détails utiles pour le client"));
       card.appendChild(productInput("URL de l’image", "image", product.image, index, "https://…"));
+      card.appendChild(productInput("Disponibilité (unités ou créneaux)", "stockQuantity", String(product.stockQuantity ?? 0), index, "Ex. 25"));
       productEditor.appendChild(card);
     });
     var count = $("#releaseProductCount");
@@ -190,7 +192,8 @@
           id: slug(product.name) + "-" + (index + 1), name: String(product.name || "").trim(),
           category: String(product.category || template.sector || "Catalogue").trim(),
           price: String(product.price || "Prix sur demande").trim(), description: String(product.description || "").trim(),
-          image: safeUrl(product.image), isExample: !product.customized
+          image: safeUrl(product.image), stockQuantity: Math.max(0, Math.min(999999, Math.floor(Number(product.stockQuantity) || 0))),
+          isExample: !product.customized
         };
       }),
       createdAt: new Date().toISOString(),
@@ -572,7 +575,7 @@
     if (!data.business.name || data.business.name.toLocaleLowerCase("fr") === "votre entreprise") { announce("Renseigne le vrai nom de l’entreprise avant la livraison."); return false; }
     if (!data.products.length) { announce("Ajoute au moins un produit au catalogue."); return false; }
     if (data.products.some(function (product) { return !product.name; })) { announce("Chaque produit doit avoir un nom."); return false; }
-    if (requireChecklist && !data.products.some(function (product) { return !product.isExample; })) { announce("Remplace au moins un produit d’exemple par un vrai produit ou service avant d’envoyer le site à validation."); return false; }
+    if (requireChecklist && !data.products.some(function (product) { return !product.isExample && product.stockQuantity > 0; })) { announce("Remplace au moins un exemple par un produit ou service réel, puis indique au moins une disponibilité supérieure à zéro."); return false; }
     return true;
   }
   function prepareClientHtml(requireChecklist) {
@@ -659,7 +662,7 @@
       if (state.products.length >= 500) return announce("Le plafond de catalogue dépend de votre formule Sama Studio.");
       state.productCounter += 1;
       state.products.push({ id:"nouveau-produit-" + state.productCounter, name:"Nouveau produit " + state.productCounter,
-        category:template.sector || "Catalogue", price:"Prix sur demande", image:"", description:"Ajoute ici une description vérifiée du produit.", customized:false });
+        category:template.sector || "Catalogue", price:"Prix sur demande", image:"", description:"Ajoute ici une description vérifiée du produit.", stockQuantity:0, customized:false });
       renderProductEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Produit ajouté au catalogue.");
     });
     $("#submitForReviewBottomBtn").addEventListener("click", submitForReview);
