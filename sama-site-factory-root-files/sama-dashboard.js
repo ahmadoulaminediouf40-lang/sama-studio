@@ -129,7 +129,7 @@ async function reloadReviewQueue(){
   if(result.error)throw result.error;organizations=result.data||[];
  }
  if(siteIds.length){
-  const result=await state.supabase.from("products").select("id,site_id,organization_id,name,category,price,price_label,is_demo,is_active,image_url").in("site_id",siteIds).order("name",{ascending:true});
+  const result=await state.supabase.from("products").select("id,site_id,organization_id,name,category,price,price_label,stock_quantity,is_demo,is_active,image_url").in("site_id",siteIds).order("name",{ascending:true});
   if(result.error)throw result.error;products=result.data||[];
  }
  const contactIds=[...new Set(sites.flatMap(site=>[site.created_by,organizations.find(org=>org.id===site.organization_id)?.owner_id]).filter(Boolean))];
@@ -186,8 +186,8 @@ function renderReviewRequests(){
   const demos=site.products.filter(product=>product.is_demo).length;
   if(site.products.length){
    productsCell.appendChild(node("strong","",verified.length+" produit(s) confirmé(s)"));
-   productsCell.appendChild(node("small","",site.products.slice(0,3).map(product=>product.name).join(", ")+(site.products.length>3?"…":"")));
-   if(demos)productsCell.appendChild(node("small","",demos+" exemple(s) à vérifier"));
+   productsCell.appendChild(node("small","",site.products.slice(0,3).map(product=>product.name+" ("+(Number(product.stock_quantity)||0)+" dispo.)").join(", ")+(site.products.length>3?"…":"")));
+   if(demos)productsCell.appendChild(node("small","",demos+" exemple(s) à vérifier"));if(!verified.some(product=>Number(product.stock_quantity)>0))productsCell.appendChild(node("small","", "Aucune disponibilité confirmée : approbation bloquée."));
   }else productsCell.appendChild(node("span","","Aucun produit"));
   append(accountCell,node("strong","",({free:"Découverte",starter:"Essentiel",pro:"Professionnel"})[site.organization?.subscription_plan]||site.organization?.subscription_plan||"—"),node("small","",({pending:"Compte à activer",active:"Compte actif",suspended:"Compte suspendu"})[site.organization?.account_status]||site.organization?.account_status||"État inconnu"));
   statusCell.appendChild(reviewStatusPill(site.review_status));
