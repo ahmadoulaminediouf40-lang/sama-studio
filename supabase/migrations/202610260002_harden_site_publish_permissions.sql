@@ -19,4 +19,4 @@ with check (
 -- The authenticated publish Edge Function verifies role and performs updates server-side.
 revoke update on public.sites from authenticated;
 
-commit();
+commit;
