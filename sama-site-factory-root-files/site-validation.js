@@ -51,7 +51,15 @@
     mark.className = "validation-required-mark";
     mark.textContent = "*";
     mark.setAttribute("aria-hidden", "true");
-    label.appendChild(mark);
+    var checkboxText = $('span', label);
+    var control = $('input:not([type="checkbox"]), textarea, select', label);
+    if (checkboxText && checkboxText.textContent.trim() && checkboxText.previousElementSibling && checkboxText.previousElementSibling.type === "checkbox") {
+      checkboxText.insertAdjacentElement("afterend", mark);
+    } else if (control) {
+      label.insertBefore(mark, control);
+    } else {
+      label.appendChild(mark);
+    }
     label.setAttribute("data-required-label", text || "Champ obligatoire");
   }
   function addSummary(message) {
