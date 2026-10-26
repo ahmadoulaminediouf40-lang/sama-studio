@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { md5 } from "https://esm.sh/@noble/hashes@1.8.0/md5";
+import { md5 } from "https://esm.sh/@noble/hashes@1.8.0/legacy";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
