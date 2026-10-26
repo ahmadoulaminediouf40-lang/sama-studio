@@ -119,6 +119,8 @@
     }
 
     var cards = all(".product-edit-card").filter(function (card) { return !!$('[data-product-key="name"]', card); });
+    var currentData = window.SAMA_PUBLISHER && typeof window.SAMA_PUBLISHER.getCurrentData === "function"
+      ? window.SAMA_PUBLISHER.getCurrentData() : null;
     var realReady = false;
     var firstProductErrors = [];
     cards.forEach(function (card) {
@@ -132,9 +134,10 @@
       var description = descriptionInput ? descriptionInput.value.trim() : "";
       var image = imageInput ? imageInput.value.trim() : "";
       var stock = stockInput ? Number(stockInput.value) : 0;
-      var customized = !!(nameInput && nameInput.dataset.productIndex !== undefined &&
-        (nameInput.value.trim() !== "" && !/^produit\s+\d+$/i.test(nameInput.value.trim())));
-      var isRealCandidate = customized || [price, description, image].some(function (value) { return !!value; });
+      var productIndex = nameInput ? Number(nameInput.dataset.productIndex) : -1;
+      var productData = currentData && Array.isArray(currentData.products) ? currentData.products[productIndex] : null;
+      var customized = !!(productData && productData.isExample === false);
+      var isRealCandidate = customized;
       var valid = !!productName && !!price && !/^prix sur demande$/i.test(price) &&
         !!description && !!image && Number.isFinite(stock) && stock > 0;
       if (valid && isRealCandidate) realReady = true;
