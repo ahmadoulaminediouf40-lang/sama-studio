@@ -1,0 +1,34 @@
+name: Validate Sama Studio
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "sama-site-factory-root-files/**"
+      - ".github/workflows/validate-studio.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "sama-site-factory-root-files/**"
+      - ".github/workflows/validate-studio.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-validation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sama-site-factory-root-files
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check site-studio.js
+          node --check site-templates.js
+          node --check site-publisher.js
+          node --check validate-release.mjs
+      - name: Validate studio deliverables
+        run: node validate-release.mjs
