@@ -177,6 +177,158 @@
       card.appendChild(imageWrap); card.appendChild(content); grid.appendChild(card);
     });
   }
+  function safePageSlug(value) {
+    return slug(value).slice(0, 55) || "page";
+  }
+  function pageInput(labelText, key, value, index, multiline) {
+    var label = create("label", "product-field", labelText), input;
+    if (multiline) { input = create("textarea"); input.rows = 4; input.maxLength = 5000; }
+    else { input = create("input"); input.type = "text"; input.maxLength = key === "title" ? 90 : 170; }
+    input.value = value || "";
+    input.dataset.pageIndex = String(index); input.dataset.pageKey = key;
+    input.addEventListener("input", function () {
+      var page = state.pages[Number(input.dataset.pageIndex)];
+      if (!page) return;
+      page[input.dataset.pageKey] = input.value;
+      if (key === "title") page.slug = safePageSlug(input.value);
+      syncPreviewProducts(); persistReleaseDraft();
+    });
+    label.appendChild(input); return label;
+  }
+  function renderPagesEditor() {
+    if (!pageEditor) return;
+    pageEditor.replaceChildren();
+    state.pages.forEach(function (page, index) {
+      var card = create("div", "product-edit-card page-edit-card"), top = create("div", "product-edit-card-top");
+      top.appendChild(create("strong", "", "Page " + String(index + 1).padStart(2, "0")));
+      var remove = create("button", "product-remove-button", "Supprimer");
+      remove.type = "button"; remove.addEventListener("click", function () {
+        state.pages.splice(index, 1); renderPagesEditor(); syncPreviewProducts(); persistReleaseDraft();
+      });
+      top.appendChild(remove); card.appendChild(top);
+      card.appendChild(pageInput("Titre de la page", "title", page.title, index, false));
+      card.appendChild(pageInput("Description de la page", "description", page.description, index, false));
+      card.appendChild(pageInput("Contenu", "content", page.content, index, true));
+      var visibleLabel = create("label", "page-visible-toggle"), visible = create("input");
+      visible.type = "checkbox"; visible.checked = page.visible !== false;
+      visible.addEventListener("change", function () { page.visible = visible.checked; syncPreviewProducts(); persistReleaseDraft(); });
+      visibleLabel.appendChild(visible); visibleLabel.appendChild(create("span", "", "Afficher dans le menu et sur le site"));
+      card.appendChild(visibleLabel); pageEditor.appendChild(card);
+    });
+    var count = $("#customPageCount");
+    if (count) count.textContent = state.pages.length + " page" + (state.pages.length === 1 ? "" : "s");
+  }
+  function safeImageUrl(value) {
+    var text = String(value || "").trim();
+    if (/^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(text)) return text;
+    return safeUrl(text);
+  }
+  function renderMediaLibrary() {
+    if (!mediaGrid) return;
+    mediaGrid.replaceChildren();
+    state.media.forEach(function (item, index) {
+      var card = create("div", "site-media-card"), image = create("img"), actions = create("div", "site-media-actions");
+      image.src = safeImageUrl(item.dataUrl); image.alt = item.name || "Image importée"; image.loading = "lazy";
+      card.appendChild(image); card.appendChild(create("strong", "", item.name || ("Image " + (index + 1))));
+      [["Logo", "logoUrl"], ["Bannière", "heroImageUrl"], ["Produit 1", "product"]].forEach(function (target) {
+        var button = create("button", "media-use-button", target[0]); button.type = "button";
+        button.addEventListener("click", function () {
+          if (target[1] === "product") {
+            if (!state.products.length) return announce("Ajoutez d’abord un produit au catalogue.");
+            state.products[0].image = item.dataUrl; state.products[0].customized = true; renderProductEditor();
+          } else if (field(target[1])) {
+            field(target[1]).value = item.dataUrl;
+            field(target[1]).dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          syncPreviewProducts(); persistReleaseDraft(); announce("Image appliquée : " + target[0].toLowerCase() + ".");
+        });
+        actions.appendChild(button);
+      });
+      var remove = create("button", "media-remove-button", "Retirer");
+      remove.type = "button"; remove.addEventListener("click", function () {
+        state.media.splice(index, 1); renderMediaLibrary(); persistReleaseDraft();
+      });
+      actions.appendChild(remove); card.appendChild(actions); mediaGrid.appendChild(card);
+    });
+    var count = $("#mediaCount");
+    if (count) count.textContent = state.media.length + " image" + (state.media.length === 1 ? "" : "s");
+  }
+  function handleMediaUpload(event) {
+    var files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    var queue = files.slice(0, Math.max(0, 6 - state.media.length));
+    if (!queue.length) { announce("La médiathèque est limitée à 6 images par projet."); event.target.value = ""; return; }
+    var pending = queue.length, added = 0;
+    queue.forEach(function (file) {
+      if (!/^image\/(?:png|jpeg|webp|gif)$/.test(file.type) || file.size > 250 * 1024) {
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); persistReleaseDraft(); announce(added ? added + " image(s) importée(s). Les fichiers refusés dépassent 250 Ko ou ont un format non pris en charge." : "Choisissez des images PNG, JPEG, WebP ou GIF de 250 Ko maximum."); }
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        if (state.media.length < 6 && typeof reader.result === "string") {
+          state.media.push({ id: "media-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), name: file.name.slice(0, 120), dataUrl: reader.result });
+          added += 1;
+        }
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); persistReleaseDraft(); announce(added ? added + " image(s) importée(s)." : "Aucune image n’a été importée."); }
+      };
+      reader.onerror = function () {
+        pending -= 1;
+        if (!pending) { renderMediaLibrary(); announce("Une image n’a pas pu être lue."); }
+      };
+      reader.readAsDataURL(file);
+    });
+    event.target.value = "";
+  }
+  function revisionSnapshot(label) {
+    var data = collectData();
+    data.media = [];
+    data.products = data.products.map(function (product) {
+      if (/^data:image\//i.test(product.image || "")) product.image = "";
+      return product;
+    });
+    var revisions;
+    try { revisions = JSON.parse(localStorage.getItem("sama_studio_revisions_v1") || "[]"); } catch (error) { revisions = []; }
+    if (!Array.isArray(revisions)) revisions = [];
+    revisions.unshift({ id: "revision-" + Date.now(), label: String(label || "Version manuelle").slice(0, 80), createdAt: new Date().toISOString(), templateId: data.template.id, data: data });
+    revisions = revisions.slice(0, 8);
+    try { localStorage.setItem("sama_studio_revisions_v1", JSON.stringify(revisions)); }
+    catch (error) { return announce("Espace de stockage insuffisant pour conserver cette version."); }
+    renderRevisionHistory(); announce("Version enregistrée. Tu pourras la restaurer depuis cet historique.");
+  }
+  function renderRevisionHistory() {
+    if (!revisionList) return;
+    var revisions;
+    try { revisions = JSON.parse(localStorage.getItem("sama_studio_revisions_v1") || "[]"); } catch (error) { revisions = []; }
+    if (!Array.isArray(revisions)) revisions = [];
+    revisions = revisions.filter(function (revision) { return revision.templateId === activeTemplate().id; });
+    revisionList.replaceChildren();
+    revisions.forEach(function (revision) {
+      var row = create("div", "site-revision-row"), copy = create("div", "site-revision-copy");
+      copy.appendChild(create("strong", "", revision.label || "Version"));
+      copy.appendChild(create("small", "", new Date(revision.createdAt).toLocaleString("fr-FR")));
+      var restore = create("button", "media-use-button", "Restaurer"); restore.type = "button";
+      restore.addEventListener("click", function () { restoreRevision(revision); });
+      row.appendChild(copy); row.appendChild(restore); revisionList.appendChild(row);
+    });
+    var count = $("#revisionCount");
+    if (count) count.textContent = revisions.length + " version" + (revisions.length === 1 ? "" : "s");
+    if (!revisions.length) revisionList.appendChild(create("p", "release-help", "Aucune version enregistrée pour ce modèle."));
+  }
+  function restoreRevision(revision) {
+    if (!revision || !revision.data) return;
+    var data = revision.data, b = data.business || {};
+    var mapping = { businessName: "name", businessTagline: "headline", businessCity: "city", businessPhone: "phone", businessWhatsapp: "whatsapp", businessAddress: "address", businessEmail: "email", businessDescription: "description", businessHours: "hours", businessDelivery: "delivery", businessInstagram: "instagram", businessFacebook: "facebook", logoUrl: "logoUrl", seoTitle: "seoTitle", seoDescription: "seoDescription" };
+    Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = b[mapping[id]] || ""; });
+    if (field("brandColor")) field("brandColor").value = data.design && data.design.primaryColor || activeTemplate().color;
+    if (field("heroImageUrl")) field("heroImageUrl").value = data.template && data.template.heroImage || "";
+    state.products = Array.isArray(data.products) ? data.products.map(function (p) { return { id: p.id || slug(p.name), name: p.name || "", category: p.category || "", price: p.price || "", description: p.description || "", image: safeImageUrl(p.image), stockQuantity: Number(p.stockQuantity) || 0, customized: p.isExample === false }; }) : cloneProducts(activeTemplate());
+    state.pages = Array.isArray(data.pages) ? data.pages.map(function (p) { return Object.assign({}, p); }) : [];
+    renderProductEditor(); renderPagesEditor(); renderMediaLibrary(); syncPreviewProducts(); persistReleaseDraft();
+    announce("Version restaurée. Vérifie le contenu avant de republier.");
+  }
   function collectData() {
     var template = activeTemplate();
     if (!template) throw new Error("Aucun modèle n’est sélectionné.");
