@@ -252,7 +252,7 @@ async function loadRevisions() {
   ui.revisionList.replaceChildren();
   (data || []).forEach(revision => {
     const copy = node("div", "cms-item-copy");
-    copy.append(node("strong", "", revision.label), node("small", "", new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(revision.created_at)));
+    copy.append(node("strong", "", revision.label), node("small", "", new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(revision.created_at))));
     const row = node("article", "cms-item");
     row.append(copy, makeButton("Restaurer", () => restoreRevision(revision), true));
     ui.revisionList.appendChild(row);
@@ -278,7 +278,7 @@ async function restoreRevision(revision) {
       if (error) throw error;
     }
     if (prior.length) {
-      const { error } = await supabase.from("site_pages").upsert(prior.map(({ created_at, updated_at, ...p }) => ({ ...p, site_id: siteId, organization_id: selectedOrgId() })), { onConflict: "id" });
+      const { error } = await supabase.from("site_pages").upsert(prior.map(({ created_at, updated_at, created_by, ...p }) => ({ ...p, site_id: siteId, organization_id: selectedOrgId() })), { onConflict: "id" });
       if (error) throw error;
     }
     announce("Version restaurée. Vérifie le contenu avant de demander une nouvelle publication.");
