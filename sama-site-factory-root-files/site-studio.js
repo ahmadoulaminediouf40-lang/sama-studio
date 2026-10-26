@@ -77,7 +77,13 @@
         number: template.number,
         name: template.name,
         sector: template.sector,
-        layout: template.layout
+        layout: template.layout,
+        useCase: template.useCase || "",
+        recommendedPages: Array.isArray(template.recommendedPages) ? template.recommendedPages.slice() : [],
+        managementModules: Array.isArray(template.managementModules) ? template.managementModules.slice() : [],
+        customerJourney: template.customerJourney || "",
+        catalogLabel: template.catalogLabel || "Catalogue",
+        orderMode: template.orderMode || "website-checkout"
       },
       business: {
         name: fields.name.value.trim() || template.demoBrand,
@@ -127,6 +133,7 @@
         <span class="gallery-card-top"><span class="gallery-number">${escapeHtml(template.number)}</span><span class="gallery-sector">${escapeHtml(template.sector)}</span></span>
         <span class="gallery-card-title">${escapeHtml(template.name)}</span>
         <span class="gallery-card-desc">${escapeHtml(template.description)}</span>
+        <span class="gallery-card-context">${escapeHtml(template.useCase || template.description)}</span>
         <span class="gallery-card-action">${template.id === state.templateId ? "Modèle sélectionné" : "Utiliser ce modèle"}<span aria-hidden="true">→</span></span>
       </button>`).join("");
     gallery.querySelectorAll("[data-template-id]").forEach((button) => {
@@ -164,6 +171,8 @@
     $("#activeTemplateSector").textContent = template.sector;
     $("#selectedTemplateTitle").textContent = template.name;
     $("#selectedTemplateDescription").textContent = template.description;
+    const context = $("#selectedTemplateContext");
+    if (context) context.innerHTML = `<strong>Pour quelle activité ?</strong><p>${escapeHtml(template.useCase || template.description)}</p><strong>Pages conseillées</strong><p>${escapeHtml((template.recommendedPages || []).join(" · "))}</p><strong>Gestion privée</strong><p>${escapeHtml((template.managementModules || []).join(" · "))}</p><strong>Parcours client</strong><p>${escapeHtml(template.customerJourney || "Découverte et contact sur le site")}</p>`;
     $("#selectedTemplateGlyph").textContent = template.glyph;
     $("#brandColorValue").textContent = currentColor().toUpperCase();
     $("#projectCount").textContent = fields.name.value.trim() || "Projet de démonstration";
