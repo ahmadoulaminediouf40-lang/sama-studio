@@ -396,6 +396,9 @@
       schemaVersion: "1.1.0", product: "Sama Studio", status: "draft",
       template: {
         id: template.id, number: template.number, name: template.name, sector: template.sector, layout: template.layout,
+        useCase: template.useCase || "", recommendedPages: Array.isArray(template.recommendedPages) ? template.recommendedPages.slice() : [],
+        managementModules: Array.isArray(template.managementModules) ? template.managementModules.slice() : [],
+        customerJourney: template.customerJourney || "", catalogLabel: template.catalogLabel || "Catalogue", orderMode: template.orderMode || "website-checkout",
         eyebrow: template.eyebrow, heroImage: safeImageUrl(fieldValue("heroImageUrl")) || safeImageUrl(template.heroImage),
         features: Array.isArray(template.features) ? template.features.slice() : [],
         navigation: Array.isArray(template.nav) ? template.nav.slice() : []
@@ -622,95 +625,41 @@
       var entries = Object.keys(cart).map(function (id) {
         var product = productById(id), quantity = Math.max(0, Number(cart[id]) || 0);
         if (!product || quantity < 1) return null;
-        var price = cartPriceValue(product);
-        return { id: id, product: product, quantity: quantity, price: price };
+        return { id: id, product: product, quantity: quantity, price: cartPriceValue(product) };
       }).filter(Boolean);
       if (!entries.length) return announce("Ton panier est vide.");
-      var phone = normalizedPhone(D.business.whatsapp || D.business.phone);
       var remote = window.SAMA_STOREFRONT_CONFIG;
-      var subtotalValue = entries.reduce(function (sum, entry) { return sum + (entry.price === null ? 0 : entry.price * entry.quantity); }, 0);
-      var hasUnpriced = entries.some(function (entry) { return entry.price === null; });
-      var message = "Bonjour " + D.business.name + ", je souhaite passer cette commande.\n\nArticles :\n" +
-        entries.map(function (entry) {
-          var line = "- " + entry.product.name + " × " + entry.quantity;
-          if (entry.price === null) line += " — prix à confirmer";
-          else line += " — " + cartMoney(entry.price) + " / unité — " + cartMoney(entry.price * entry.quantity);
-          return line;
-        }).join("\n") +
-        "\n\nSous-total indicatif : " + (hasUnpriced ? "à confirmer (" + cartMoney(subtotalValue) + " pour les articles tarifés)" : cartMoney(subtotalValue)) +
-        "\nLivraison et disponibilité à confirmer par le vendeur.";
-      if (remote && remote.apiUrl && remote.siteSlug && remote.publishableKey) {
-        var customerName = String(byId("customerName").value || "").trim();
-        var customerPhone = String(byId("customerPhone").value || "").trim();
-        var customerAddress = String(byId("customerAddress").value || "").trim();
-        var notes = String(byId("customerNotes").value || "").trim();
-        if (customerName.length < 1) return announce("Renseigne ton nom pour envoyer la commande.");
-        if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
-        var checkoutButton = byId("checkoutBtn");
-        checkoutButton.disabled = true;
-        checkoutButton.textContent = "Enregistrement…";
-        try {
-          var result = await fetch(String(remote.apiUrl).replace(/\/$/, "") + "/functions/v1/create-storefront-order", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": remote.publishableKey,
-              "Authorization": "Bearer " + remote.publishableKey
-            },
-            body: JSON.stringify({
-              site_slug: remote.siteSlug,
-              customer_name: customerName,
-              customer_phone: customerPhone,
-              customer_address: customerAddress,
-              notes: notes,
-              website: "",
-              items: entries.map(function (entry) { return { product_id: entry.id, quantity: entry.quantity }; })
-            })
-          });
-          var payload = {};
-          try { payload = await result.json(); } catch (parseError) { payload = {}; }
-          if (!result.ok || !payload.accepted || !payload.order) {
-            throw new Error(payload.error || "La commande n’a pas été enregistrée. Vérifie la connexion puis réessaie.");
-          }
-          message += "\n\nRéférence de commande : #" + payload.order.order_number +
-            "\nNom : " + customerName + "\nTéléphone : " + customerPhone +
-            (customerAddress ? "\nAdresse : " + customerAddress : "") +
-            (notes ? "\nNote : " + notes : "") +
-            "\n\nMerci de confirmer le montant final et le délai de livraison.";
-          cart = {};
-          renderCart();
-          closeCart();
-          if (phone) {
-            var whatsappUrl = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
-            var popup = window.open(whatsappUrl, "_blank");
-            if (popup) popup.opener = null;
-            else window.location.href = whatsappUrl;
-            announce("Commande #" + payload.order.order_number + " enregistrée. WhatsApp s’ouvre pour finaliser les détails.");
-          } else {
-            announce("Commande #" + payload.order.order_number + " enregistrée. Le vendeur pourra te recontacter.");
-          }
-        } catch (error) {
-          announce(error && error.message ? error.message : "Impossible d’enregistrer la commande.");
-        } finally {
-          checkoutButton.disabled = Object.keys(cart).length === 0;
-          checkoutButton.textContent = "Envoyer la commande";
-        }
-        return;
+      if (!remote || !remote.apiUrl || !remote.siteSlug || !remote.publishableKey) {
+        return announce("Les commandes en ligne ne sont pas encore activées pour ce site. Aucune commande n’a été envoyée. Réessaie plus tard ou utilise les coordonnées de contact du site.");
       }
-      if (!phone) return announce("Le vendeur n’a pas renseigné de numéro WhatsApp pour les commandes. Contacte-le par e-mail.");
-      var nameOnly = String(byId("customerName").value || "").trim();
-      var phoneOnly = String(byId("customerPhone").value || "").trim();
-      if (!nameOnly || phoneOnly.replace(/\D/g, "").length < 8) {
-        return announce("Renseigne ton nom et ton téléphone avant d’ouvrir WhatsApp.");
+      var customerName = String(byId("customerName").value || "").trim();
+      var customerPhone = String(byId("customerPhone").value || "").trim();
+      var customerAddress = String(byId("customerAddress").value || "").trim();
+      var notes = String(byId("customerNotes").value || "").trim();
+      if (customerName.length < 1) return announce("Renseigne ton nom pour envoyer la commande.");
+      if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
+      var checkoutButton = byId("checkoutBtn");
+      checkoutButton.disabled = true;
+      checkoutButton.textContent = "Enregistrement…";
+      try {
+        var result = await fetch(String(remote.apiUrl).replace(/\/$/, "") + "/functions/v1/create-storefront-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": remote.publishableKey, "Authorization": "Bearer " + remote.publishableKey },
+          body: JSON.stringify({ site_slug: remote.siteSlug, customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, notes: notes, website: "", items: entries.map(function (entry) { return { product_id: entry.id, quantity: entry.quantity }; }) })
+        });
+        var payload = {};
+        try { payload = await result.json(); } catch (parseError) { payload = {}; }
+        if (!result.ok || !payload.accepted || !payload.order) throw new Error(payload.error || "La commande n’a pas été enregistrée. Vérifie la connexion puis réessaie.");
+        cart = {};
+        renderCart();
+        closeCart();
+        announce("Commande #" + payload.order.order_number + " enregistrée sur le site. Le vendeur la retrouvera dans son espace de gestion.");
+      } catch (error) {
+        announce(error && error.message ? error.message : "Impossible d’enregistrer la commande.");
+      } finally {
+        checkoutButton.disabled = Object.keys(cart).length === 0;
+        checkoutButton.textContent = "Envoyer la commande";
       }
-      message += "\n\nNom : " + nameOnly + "\nTéléphone : " + phoneOnly +
-        "\nAdresse : " + String(byId("customerAddress").value || "").trim() +
-        "\nNote : " + String(byId("customerNotes").value || "").trim() +
-        "\n\nLa commande est à confirmer par le vendeur.";
-      var url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
-      var win = window.open(url, "_blank");
-      if (win) win.opener = null;
-      else window.location.href = url;
     }
         function setBusinessContent() {
       var logo = byId("siteLogo");
