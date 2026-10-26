@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { md5 } from "https://esm.sh/@noble/hashes@1.8.0/md5";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -50,10 +51,9 @@ function readStoreData(html: string) {
 function hex(bytes: Uint8Array) {
   return Array.from(bytes).map(value => value.toString(16).padStart(2, "0")).join("");
 }
-async function assetHash(bytes: Uint8Array) {
-  // Pages Direct Upload uses content-addressed asset keys. Keep a 128-bit hex key.
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return hex(digest).slice(0, 32);
+function assetHash(bytes: Uint8Array) {
+  // Cloudflare Pages Direct Upload asset keys are 32-character MD5 hex digests.
+  return hex(md5(bytes));
 }
 function base64(bytes: Uint8Array) {
   let binary = "";
