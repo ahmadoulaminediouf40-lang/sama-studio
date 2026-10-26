@@ -50,7 +50,8 @@
         id: "produit-" + (index + 1), name: card.title || "Produit " + (index + 1),
         category: card.type || template.sector || "Catalogue", price: card.price || "Prix sur demande",
         image: safeUrl(card.image || ""),
-        description: (card.type || template.sector || "Produit") + ". Contactez-nous pour confirmer le stock et les détails."
+        description: (card.type || template.sector || "Produit") + ". Contactez-nous pour confirmer le stock et les détails.",
+        customized: false
       };
     });
   }
@@ -107,6 +108,7 @@
       var i = Number(input.dataset.productIndex), prop = input.dataset.productKey;
       if (!state.products[i]) return;
       state.products[i][prop] = input.value;
+      state.products[i].customized = true;
       var confirmation = field("releaseChecklistConfirmed"); if (confirmation) confirmation.checked = false;
       syncPreviewProducts(); persistReleaseDraft();
     });
@@ -188,7 +190,7 @@
           id: slug(product.name) + "-" + (index + 1), name: String(product.name || "").trim(),
           category: String(product.category || template.sector || "Catalogue").trim(),
           price: String(product.price || "Prix sur demande").trim(), description: String(product.description || "").trim(),
-          image: safeUrl(product.image)
+          image: safeUrl(product.image), isExample: !product.customized
         };
       }),
       createdAt: new Date().toISOString(),
@@ -570,6 +572,7 @@
     if (!data.business.name || data.business.name.toLocaleLowerCase("fr") === "votre entreprise") { announce("Renseigne le vrai nom de l’entreprise avant la livraison."); return false; }
     if (!data.products.length) { announce("Ajoute au moins un produit au catalogue."); return false; }
     if (data.products.some(function (product) { return !product.name; })) { announce("Chaque produit doit avoir un nom."); return false; }
+    if (requireChecklist && !data.products.some(function (product) { return !product.isExample; })) { announce("Remplace au moins un produit d’exemple par un vrai produit ou service avant d’envoyer le site à validation."); return false; }
     return true;
   }
   function prepareClientHtml(requireChecklist) {
@@ -642,7 +645,7 @@
         Object.keys(mapping).forEach(function (id) { if (field(id)) field(id).value = saved.business[mapping[id]] || getExtraDefaults()[id] || ""; });
       }
       if (Array.isArray(saved.products) && saved.products.length) state.products = saved.products.map(function (p) {
-        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "" };
+        return { id:p.id || slug(p.name), name:p.name || "", category:p.category || "", price:p.price || "", image:safeUrl(p.image), description:p.description || "", customized:p.isExample===false || Boolean(p.customized) };
       });
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
@@ -656,7 +659,7 @@
       if (state.products.length >= 500) return announce("Le plafond de catalogue dépend de votre formule Sama Studio.");
       state.productCounter += 1;
       state.products.push({ id:"nouveau-produit-" + state.productCounter, name:"Nouveau produit " + state.productCounter,
-        category:template.sector || "Catalogue", price:"Prix sur demande", image:"", description:"Ajoute ici une description vérifiée du produit." });
+        category:template.sector || "Catalogue", price:"Prix sur demande", image:"", description:"Ajoute ici une description vérifiée du produit.", customized:false });
       renderProductEditor(); syncPreviewProducts(); persistReleaseDraft(); announce("Produit ajouté au catalogue.");
     });
     $("#submitForReviewBottomBtn").addEventListener("click", submitForReview);
