@@ -33,4 +33,7 @@ const publishSource=readFileSync(join(root,"../supabase/functions/publish-site/i
 assert.ok(publishSource.includes("Self-service publishing")&&publishSource.includes("trial_ends_at"),"Missing self-service publishing with trial/subscription enforcement.");
 const dashboardSource=readFileSync(join(root,"sama-dashboard.js"),"utf8");
 assert.ok(dashboardSource.includes("Publier mon site")&&dashboardSource.includes('neq("status","published")'),"Missing owner self-publishing UI or published-site review queue exclusion.");
+const cmsSource=readFileSync(join(root,"site-content-cms.js"),"utf8");
+assert.ok(dashboard.includes('id="cmsPageEditor"')&&cmsSource.includes("contenteditable")&&cmsSource.includes("sanitizeEditorHtml"),"Missing visual CMS page editor or client-side content sanitization.");
+assert.ok(publishSource.includes('sanitize-html@2.17.0')&&publishSource.includes("sanitizeHtml(raw"),"Missing server-side rich-text sanitization before public publication.");
 console.log("Sama Studio platform validation passed: builder, dashboard, tenant schema, self-service publishing and WhatsApp orders.");
