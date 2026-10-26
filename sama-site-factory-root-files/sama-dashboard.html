@@ -43,6 +43,35 @@
 <label class="wide-field">Ce que tu souhaites nous confier<textarea id="managementRequestMessage" rows="3" maxlength="1200" placeholder="Ex. mises à jour, ajout de produits, suivi régulier…"></textarea></label>
 <div class="form-submit-row"><button id="managementRequestSubmitBtn" class="btn btn-primary" type="submit">Envoyer une demande</button><span class="muted-small">La demande est enregistrée dans ton espace. La prise en charge reste à confirmer.</span></div></form>
 <div id="siteManagementRequestsWrap" class="management-request-list"></div></article>
+
+<article class="panel form-panel cms-panel">
+<div class="panel-heading"><div><span class="eyebrow">ÉDITEUR AVANCÉ</span><h2>Pages, médiathèque et versions</h2></div><span class="soft-badge">Gestion cloud</span></div>
+<p class="panel-description">Crée et gère les pages de ton site, stocke tes images dans la médiathèque cloud et conserve des points de restauration. Les pages sont enregistrées côté serveur ; le routage public sera activé avec le moteur de publication multi-pages.</p>
+<div class="form-grid"><label>Site à gérer<select id="cmsSiteSelect" required></select></label><p id="cmsStatus" class="muted-small cms-status" role="status" aria-live="polite">Connexion au gestionnaire de contenu…</p></div>
+<div class="cms-columns">
+<section class="cms-subpanel"><div class="panel-heading"><div><span class="eyebrow">CONTENU</span><h3>Pages du site</h3></div><button id="cmsNewPageBtn" class="btn btn-outline cms-small-btn" type="button">＋ Nouvelle page</button></div>
+<div id="cmsPageList" class="cms-list"></div>
+<form id="cmsPageForm" class="form-grid cms-page-form">
+<input id="cmsPageId" type="hidden">
+<label>Titre de la page<input id="cmsPageTitle" required maxlength="120" placeholder="Ex. Nos services"></label>
+<label>Adresse de la page (slug)<input id="cmsPageSlug" required maxlength="80" pattern="[a-z0-9][a-z0-9-]{0,78}[a-z0-9]" placeholder="nos-services"></label>
+<label>Titre SEO <span class="muted-small">70 caractères max.</span><input id="cmsSeoTitle" maxlength="70"></label>
+<label>Description SEO <span class="muted-small">170 caractères max.</span><input id="cmsSeoDescription" maxlength="170"></label>
+<label class="wide-field">Contenu de la page<textarea id="cmsPageContent" rows="5" maxlength="12000" placeholder="Rédige le contenu de cette page…"></textarea></label>
+<label class="cms-checkbox"><input id="cmsShowInMenu" type="checkbox" checked> Afficher cette page dans le menu</label>
+<div class="form-submit-row"><button id="cmsSavePageBtn" class="btn btn-primary" type="submit">Créer la page</button></div>
+</form></section>
+<section class="cms-subpanel"><div class="panel-heading"><div><span class="eyebrow">MÉDIATHÈQUE</span><h3>Images cloud</h3></div></div>
+<p class="muted-small">PNG, JPEG, WebP, GIF ou AVIF. 20 Mo maximum par image. Les fichiers restent privés et les aperçus utilisent des liens temporaires.</p>
+<label class="cms-upload-label">Importer des images<input id="cmsMediaInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" multiple></label>
+<div id="cmsMediaList" class="cms-list"></div>
+<div class="panel-heading cms-history-heading"><div><span class="eyebrow">RESTAURATION</span><h3>Historique des versions</h3></div></div>
+<label>Nom de la version<input id="cmsRevisionLabel" maxlength="120" placeholder="Ex. Avant refonte de la page d’accueil"></label>
+<button id="cmsSaveRevisionBtn" class="btn btn-primary" type="button">Sauvegarder une version</button>
+<p id="cmsRestoreHint" class="muted-small">Une version conserve le HTML du site et les pages du CMS.</p>
+<div id="cmsRevisionList" class="cms-list"></div>
+</section></div></article>
+
 </section>
 
 <section id="view-review" class="view-section hidden">
@@ -64,4 +93,4 @@
 <section id="view-settings" class="view-section hidden"><article class="panel"><div class="panel-heading"><div><span class="eyebrow">ESPACE DE TRAVAIL</span><h2>Entreprise et accès</h2></div></div><div class="settings-grid"><div><small>Formule</small><strong id="settingsPlanName">Découverte</strong><span id="settingsUsageSummary">Chargement de l’utilisation…</span></div><div><small>Compte client</small><strong id="settingsAccountStatus">En attente d’activation</strong><span id="settingsAccountNote">La publication reste suspendue jusqu’à validation SAMA Studio.</span></div><div><small>Entreprise active</small><strong id="settingsOrgName">—</strong><span id="settingsOrgSlug"></span></div><div><small>Ton rôle</small><strong id="settingsRole">—</strong><span>Droits associés à ton rôle dans l’entreprise.</span></div><div><small>Compte connecté</small><strong id="settingsUserEmail">—</strong><span>Connexion avec ton adresse e-mail.</span></div></div></article></section>
 </div></section><div id="dashboardToast" class="toast" role="status" aria-live="polite"></div></main>
 <footer class="dashboard-footer"><span>© <span id="currentYear"></span> Sama Studio</span><span>Gère tes sites, tes produits et tes commandes au même endroit</span></footer></div>
-<script type="module" src="sama-dashboard.js"></script></body></html>
+<script type="module" src="sama-dashboard.js"></script><script type="module" src="site-content-cms.js"></script></body></html>

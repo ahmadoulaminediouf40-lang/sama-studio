@@ -32,6 +32,7 @@ jobs:
           node --check site-templates.js
           node --check site-publisher.js
           node --check sama-dashboard.js
+          node --check site-content-cms.js
           node --check validate-platform.mjs
       - name: Validate required product and backend files
         run: node validate-platform.mjs
