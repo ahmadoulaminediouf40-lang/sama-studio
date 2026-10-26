@@ -92,7 +92,8 @@
       '<div class="release-export-actions"><button id="exportWebsiteBtn" class="btn btn-primary btn-full" type="button">↓ Télécharger le site client (.html)</button>' +
       '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Prévisualiser le site client</button>' +
       '<button id="exportConfigJsonEnhancedBtn" class="text-button" type="button">Exporter la fiche complète (JSON)</button></div>' +
-      '<div class="release-disclaimer"><strong>Avant livraison</strong><p>Renseigne le numéro WhatsApp au format international, vérifie tous les prix et remplace les contenus de démonstration. Le site exporté prend les commandes via WhatsApp ; il n’intègre pas de paiement en ligne ni de gestion serveur des stocks.</p></div>';
+      '<div class="release-disclaimer"><strong>Avant livraison</strong><p>Renseigne le numéro WhatsApp au format international, vérifie tous les prix et remplace les contenus de démonstration. Le site exporté prend les commandes via WhatsApp ; il n’intègre pas de paiement en ligne ni de gestion serveur des stocks.</p></div>' +
+      '<label class="release-confirmation"><input id="releaseChecklistConfirmed" type="checkbox"><span><strong>Contrôle final effectué</strong><small>J’ai vérifié l’identité, les prix, les coordonnées, les disponibilités et les droits d’utilisation des images.</small></span></label>';
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
     releasePanel = panel; productEditor = $("#siteProductsEditor", panel);
@@ -106,13 +107,16 @@
     input.addEventListener("input", function () {
       var i = Number(input.dataset.productIndex), prop = input.dataset.productKey;
       if (!state.products[i]) return;
-      state.products[i][prop] = input.value; syncPreviewProducts(); persistReleaseDraft();
+      state.products[i][prop] = input.value;
+      var confirmation = field("releaseChecklistConfirmed"); if (confirmation) confirmation.checked = false;
+      syncPreviewProducts(); persistReleaseDraft();
     });
     label.appendChild(input); return label;
   }
   function renderProductEditor() {
     if (!productEditor) return;
     productEditor.replaceChildren();
+    var confirmation = field("releaseChecklistConfirmed"); if (confirmation) confirmation.checked = false;
     state.products.forEach(function (product, index) {
       var card = create("div", "product-edit-card"), top = create("div", "product-edit-card-top");
       top.appendChild(create("strong", "", "Produit " + String(index + 1).padStart(2, "0")));
@@ -444,27 +448,32 @@
     page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script></body></html>');
     return page.join("\n");
   }
-  function validateForExport(data) {
+  function validateForExport(data, requireChecklist) {
+    var confirmation = document.getElementById("releaseChecklistConfirmed");
+    if (requireChecklist && (!confirmation || !confirmation.checked)) {
+      announce("Effectue et coche le contrôle final avant de télécharger le site client.");
+      return false;
+    }
     if (!data.business.name || data.business.name.toLocaleLowerCase("fr") === "votre entreprise") { announce("Renseigne le vrai nom de l’entreprise avant la livraison."); return false; }
     if (!data.products.length) { announce("Ajoute au moins un produit au catalogue."); return false; }
     if (data.products.some(function (product) { return !product.name; })) { announce("Chaque produit doit avoir un nom."); return false; }
     return true;
   }
-  function prepareClientHtml() {
+  function prepareClientHtml(requireChecklist) {
     var data;
     try { data = collectData(); } catch (error) { announce(error.message || "Impossible de préparer le site."); return null; }
-    if (!validateForExport(data)) return null;
+    if (!validateForExport(data, requireChecklist)) return null;
     if (!normalizeWhatsapp(data.business.whatsapp || data.business.phone)) announce("Site exportable, mais ajoute un numéro WhatsApp international pour activer les commandes.");
     return buildClientHtml(data);
   }
   function exportWebsite() {
-    var html = prepareClientHtml(); if (!html) return;
+    var html = prepareClientHtml(true); if (!html) return;
     var data = collectData();
     downloadBlob(slug(data.business.name) + "-site.html", html, "text/html;charset=utf-8");
     persistReleaseDraft(); announce("Site client HTML généré. Ouvre-le dans un navigateur pour le tester.");
   }
   function previewWebsite() {
-    var html = prepareClientHtml(); if (!html) return;
+    var html = prepareClientHtml(false); if (!html) return;
     var url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
     var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.style.display = "none";
     document.body.appendChild(link); link.click(); link.remove();
@@ -531,6 +540,7 @@
         var next = activeTemplate();
         if (next && next.id !== state.templateId) {
           state.templateId = next.id; state.products = cloneProducts(next);
+          var confirmation = field("releaseChecklistConfirmed"); if (confirmation) confirmation.checked = false;
           renderProductEditor(); syncPreviewProducts(); persistReleaseDraft();
         }
       });
