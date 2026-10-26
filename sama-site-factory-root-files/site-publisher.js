@@ -2,9 +2,9 @@
 (function () {
   "use strict";
   var templates = Array.isArray(window.SAMA_SITE_TEMPLATES) ? window.SAMA_SITE_TEMPLATES : [];
-  var state = { templateId: "", products: [], productCounter: 0 };
+  var state = { templateId: "", products: [], productCounter: 0, pages: [], media: [] };
   var toast = document.getElementById("studioToast");
-  var productEditor, releasePanel, extra = {};
+  var productEditor, releasePanel, extra = {}, pageEditor, mediaInput, mediaGrid, revisionList;
   function $(selector, scope) { return (scope || document).querySelector(selector); }
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -95,6 +95,16 @@
       '<p class="release-help">Remplacez les exemples par vos produits réels. Pour chaque article, renseignez un nom, un prix, une image et une description claire. La capacité du catalogue dépendra de votre formule.</p>' +
       '<div id="siteProductsEditor" class="site-products-editor"></div>' +
       '<button id="addSiteProductBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter un produit</button></details>' +
+      '<details class="editor-section" open><summary><span>Pages et navigation</span><small id="customPageCount">0 page</small></summary>' +
+      '<p class="release-help">Ajoutez des pages ou sections navigables : présentation, services, FAQ, livraison ou conditions.</p>' +
+      '<div id="sitePagesEditor" class="site-pages-editor"></div><button id="addSitePageBtn" class="btn btn-secondary btn-full" type="button">＋ Ajouter une page</button></details>' +
+      '<details class="editor-section"><summary><span>Médiathèque</span><small id="mediaCount">0 image</small></summary>' +
+      '<p class="release-help">Importez des images et réutilisez-les comme logo, bannière ou image du premier produit. PNG, JPEG, WebP ou GIF, 250 Ko maximum par image.</p>' +
+      '<label class="media-upload-label">Importer des images<input id="mediaUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>' +
+      '<div id="siteMediaGrid" class="site-media-grid"></div></details>' +
+      '<details class="editor-section"><summary><span>Versions et restauration</span><small id="revisionCount">0 version</small></summary>' +
+      '<p class="release-help">Créez un point de restauration avant une modification importante. Les versions sont conservées dans ce navigateur.</p>' +
+      '<button id="createRevisionBtn" class="btn btn-secondary btn-full" type="button">Créer une version maintenant</button><div id="siteRevisionList" class="site-revision-list"></div></details>' +
       '<div class="release-export-actions"><button id="submitForReviewBottomBtn" class="btn btn-primary btn-full" type="button">Enregistrer et demander validation <span aria-hidden="true">→</span></button>' +
       '<button id="previewWebsiteBtn" class="btn btn-secondary btn-full" type="button">↗ Voir mon aperçu</button></div>' +
       '<div class="release-disclaimer"><strong>Après l’envoi</strong><p>Votre demande apparaît dans votre espace. SAMA Studio vérifie les coordonnées, le catalogue et le rendu, puis approuve le site ou vous indique les corrections à faire. Votre site reste privé jusqu’à sa validation.</p></div>' +
@@ -102,6 +112,7 @@
     var config = $(".configuration-panel"), footer = $(".config-footer", config);
     config.insertBefore(panel, footer || null);
     releasePanel = panel; productEditor = $("#siteProductsEditor", panel);
+    pageEditor = $("#sitePagesEditor", panel); mediaInput = $("#mediaUploadInput", panel); mediaGrid = $("#siteMediaGrid", panel); revisionList = $("#siteRevisionList", panel);
   }
   function productInput(labelText, key, value, index, placeholder) {
     var label = create("label", "product-field", labelText), input;
