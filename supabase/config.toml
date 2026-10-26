@@ -1,0 +1,7 @@
+project_id = "sama-studio"
+
+[functions.publish-site]
+verify_jwt = true
+
+[functions.create-storefront-order]
+verify_jwt = false
