@@ -587,6 +587,19 @@
     if (data.products.some(product => !String(product.name || "").trim())) throw new Error("Chaque produit doit avoir un nom.");
     if (new TextEncoder().encode(html).length > 2900000) throw new Error("Le contenu du site est trop volumineux. Réduisez la taille de l’image ou les descriptions.");
     const organizationId = await ensureOrganization(data.business.name);
+    const htmlBytes = new TextEncoder().encode(html).length;
+    const { data: usage, error: usageError } = await state.supabase.rpc("get_organization_usage", { p_organization_id: organizationId });
+    if (usageError) throw usageError;
+    if (usage) {
+      const maxSiteBytes = Number(usage.max_site_html_bytes || 0);
+      const maxTotalBytes = Number(usage.max_total_site_html_bytes || 0);
+      const maxSites = Number(usage.max_sites || 0);
+      const maxProducts = Number(usage.max_products || 0);
+      if (maxSiteBytes && htmlBytes > maxSiteBytes) throw new Error("Votre formule " + (usage.plan_name || usage.plan_code) + " autorise " + (maxSiteBytes / 1000000).toFixed(1) + " Mo par site. Réduisez les images ou choisissez une formule supérieure.");
+      if (maxSites && Number(usage.site_count || 0) >= maxSites) throw new Error("Votre formule autorise " + maxSites + " site(s). Supprimez un site inutile ou demandez une formule supérieure à SAMA Studio.");
+      if (maxTotalBytes && Number(usage.site_html_bytes || 0) + htmlBytes > maxTotalBytes) throw new Error("L’espace de sites de votre formule est presque plein (" + (maxTotalBytes / 1000000).toFixed(1) + " Mo au total). Réduisez le poids des images ou changez de formule.");
+      if (maxProducts && Number(usage.product_count || 0) + data.products.length > maxProducts) throw new Error("Votre formule autorise " + maxProducts + " produits au total. Réduisez le catalogue ou demandez une formule supérieure.");
+    }
     const slug = slugBase(data.business.name) + "-" + Date.now().toString(36).slice(-5);
     const now = new Date().toISOString();
     const { data: site, error } = await state.supabase.from("sites").insert({
