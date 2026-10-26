@@ -5,6 +5,7 @@ create table if not exists public.site_management_admins (
 alter table public.site_management_admins enable row level security;
 revoke all on table public.site_management_admins from anon, authenticated;
 grant select on table public.site_management_admins to authenticated;
+drop policy if exists "Platform managers can see their own registration" on public.site_management_admins;
 create policy "Platform managers can see their own registration"
 on public.site_management_admins
 for select to authenticated
