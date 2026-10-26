@@ -681,9 +681,9 @@
       slug,
       template_id: String(data.template?.id || "distribution").slice(0, 80),
       status: "draft",
-      review_status: "pending",
+      review_status: "draft",
       review_note: null,
-      submitted_at: now,
+      submitted_at: null,
       html_content: html,
       created_by: state.user.id
     }).select("id,name,slug,review_status,submitted_at").single();
@@ -711,23 +711,13 @@
         throw productsError;
       }
     }
-    let emailSent = false;
-    try {
-      const notification = await state.supabase.functions.invoke("notify-site-review", { body: { site_id: site.id } });
-      emailSent = !notification.error && Boolean(notification.data?.sent);
-    } catch (notificationError) {
-      // The database notification already exists. Email delivery is optional until SMTP/provider secrets are configured.
-      emailSent = false;
-    }
     state.currentSiteId = site.id;
     $("#projectCount").textContent = site.name;
-    $("#projectSavedState").textContent = "Demande envoyée · En attente de validation";
-    $("#studioToast").textContent = emailSent
-      ? "Site enregistré ! La demande a été envoyée et l’e-mail de notification est parti vers SAMA Studio."
-      : "Site enregistré ! La notification apparaît dans le tableau de bord SAMA Studio. L’e-mail automatique reste à configurer.";
+    $("#projectSavedState").textContent = "Brouillon enregistré · prêt à publier";
+    $("#studioToast").textContent = "Site enregistré dans ton compte. Ouvre ton tableau de bord pour le publier quand tu es prêt.";
     $("#studioToast").classList.add("visible");
     const submitButtons = [$("#submitForReviewBtn"), $("#submitForReviewBottomBtn")].filter(Boolean);
-    submitButtons.forEach(button => { button.disabled = true; button.textContent = "Demande envoyée"; });
+    submitButtons.forEach(button => { button.disabled = true; button.textContent = "Site enregistré"; });
     return site;
   }
 
