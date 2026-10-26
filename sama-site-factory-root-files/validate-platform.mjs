@@ -7,7 +7,7 @@ const studio=readFileSync(join(root,"site-studio.html"),"utf8");
 for(const asset of ["site-release.css","site-templates.js","site-studio.js","site-publisher.js"])assert.ok(studio.includes(asset),"Missing builder asset: "+asset);
 const templates=readFileSync(join(root,"site-templates.js"),"utf8");
 for(const id of ["distribution","fashion","beauty","electronics","home","grocery","restaurant","bakery","services","realestate"])assert.ok(templates.includes('id: "'+id+'"'),"Missing template "+id);
-assert.ok(!/sama[\\s_-]*pack/i.test(templates), "SAMA-PACK must not be present in the platform templates.");
+assert.ok(!/sama[\s_-]*pack/i.test(templates), "SAMA-PACK must not be present in the platform templates.");
 const publisher=readFileSync(join(root,"site-publisher.js"),"utf8");
 for(const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","wa.me/","create-storefront-order","customerPhone","sitePagesEditor","siteMediaGrid","siteRevisionList","custom-content-section","safeImageUrl"])assert.ok(publisher.includes(marker),"Missing storefront feature "+marker);
 const dashboard=readFileSync(join(root,"sama-dashboard.html"),"utf8");
