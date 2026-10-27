@@ -34,6 +34,7 @@ assert.ok(publishSource.includes("Self-service publishing")&&publishSource.inclu
 const dashboardSource=readFileSync(join(root,"sama-dashboard.js"),"utf8");
 assert.ok(dashboardSource.includes("Publier la boutique")&&dashboardSource.includes('neq("status","published")'),"Missing owner storefront publishing UI or published-store review queue exclusion.");
 assert.ok(dashboardSource.includes("function createMyBoutiques")&&dashboardSource.includes("SAMA Market")&&dashboardSource.includes("SAMA Immo"),"Missing first-party setup for the ten SAMA storefronts.");
+assert.ok(dashboardSource.includes("ownedStores<firstPartySlugs.length")&&dashboardSource.includes("await createMyBoutiques()"),"The owner workspace should automatically prepare missing first-party storefronts.");
 assert.ok(dashboardSource.includes("calculateSalePrice")&&dashboardSource.includes("source_checked_at")&&dashboardSource.includes("update_storefront_order_fulfillment"),"Missing sourced pricing, margin calculation or fulfilment admin.");
 const publicHome=readFileSync(join(root,"index.html"),"utf8");
 assert.ok(publicHome.includes('href="./boutiques.html"')&& !publicHome.includes('href="./site-studio.html"'),"The public home must direct shoppers to the store directory, not the client site builder.");
