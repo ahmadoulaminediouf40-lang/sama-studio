@@ -15,10 +15,9 @@ function toast(message,error=false){const e=$("#dashboardToast");e.textContent=m
 function setConnectionStatus(connected,message){const e=$("#connectionStatus");if(!e)return;e.classList.toggle("connected",Boolean(connected));if(e.childNodes.length>1)e.childNodes[e.childNodes.length-1].textContent=" "+(message||(connected?"Service disponible":"Connexion à vérifier"));else e.appendChild(document.createTextNode(" "+(message||(connected?"Service disponible":"Connexion à vérifier"))));}
 function showOnly(id){["authPanel","organizationOnboarding","dashboardPanel"].forEach(n=>$("#"+n).classList.toggle("hidden",n!==id));$("#signOutBtn").classList.toggle("hidden",id!=="dashboardPanel");}
 async function configureSupabase(url,key){const cleanUrl=url.replace(/\/$/,"");state.supabase=createClient(cleanUrl,key.trim(),{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data,error}=await state.supabase.auth.getSession();if(error)throw error;if(data.session?.user){state.user=data.session.user;await showWorkspace();}else{state.user=null;$("#authMessage").textContent="";showOnly("authPanel");}setConnectionStatus(true,"Service disponible");}
-function setAuthMode(mode){const signup=mode==="signup";state.authMode=mode;$("#authTitle").textContent=signup?"Crée ton compte.":"Bienvenue.";$("#authDescription").textContent=signup?"Crée ton accès pour gérer ton entreprise et tes sites.":"Connecte-toi pour accéder à ton tableau de bord.";$("#signupNameWrap").classList.toggle("hidden",!signup);$("#authSubmitBtn").textContent=signup?"Créer mon compte":"Se connecter";$("#toggleAuthModeBtn").textContent=signup?"J’ai déjà un compte":"Créer un compte";$("#authPassword").autocomplete=signup?"new-password":"current-password";$("#authMessage").textContent="";$("#authMessage").classList.remove("error");}
+function setAuthMode(){state.authMode="signin";$("#authTitle").textContent="Administration privée SAMA.";$("#authDescription").textContent="Connecte-toi avec le compte propriétaire autorisé. Les clients achètent depuis les boutiques et n’ont pas accès à cet espace.";$("#signupNameWrap").classList.add("hidden");$("#toggleAuthModeBtn").hidden=true;$("#authSubmitBtn").textContent="Se connecter";$("#authPassword").autocomplete="current-password";$("#authMessage").textContent="";$("#authMessage").classList.remove("error");}
 function setBusy(button,busy,label){button.disabled=busy;if(!button.dataset.originalLabel)button.dataset.originalLabel=button.textContent;button.textContent=busy?label:button.dataset.originalLabel;}
-async function onAuthSubmit(event){event.preventDefault();const button=$("#authSubmitBtn"),email=$("#authEmail").value.trim(),password=$("#authPassword").value,message=$("#authMessage");message.classList.remove("error");message.textContent="";setBusy(button,true,"Vérification…");try{if(state.authMode==="signup"){const {data,error}=await state.supabase.auth.signUp({email,password,options:{emailRedirectTo:new URL("./sama-dashboard.html",window.location.href).href,data:{full_name:$("#signupName").value.trim()}}});if(error)throw error;if(!data.session){message.textContent="Compte créé. Confirme l’adresse e-mail depuis le message reçu, puis connecte-toi.";}else{state.user=data.user;await showWorkspace();}}else{const {data,error}=await state.supabase.auth.signInWithPassword({email,password});if(error)throw error;state.user=data.user;await showWorkspace();}}catch(e){message.textContent=friendlyError(e);message.classList.add("error");}finally{setBusy(button,false);}}
-async function signOut(){if(!state.supabase)return;const {error}=await state.supabase.auth.signOut();if(error)return toast(friendlyError(error),true);state.user=null;state.organization=null;state.organizations=[];state.isSamaAdmin=false;state.supportRequests=[];state.reviewSites=[];state.reviewProducts=[];state.reviewNotifications=[];state.orgUsage=null;$("#supportNavItem").hidden=true;$("#reviewNavItem").hidden=true;$("#userEmail").textContent="";$("#authEmail").value="";$("#authPassword").value="";setAuthMode("signin");showOnly("authPanel");toast("Déconnexion effectuée.");}
+async function onAuthSubmit(event){event.preventDefault();const button=$("#authSubmitBtn"),email=$("#authEmail").value.trim(),password=$("#authPassword").value,message=$("#authMessage");message.classList.remove("error");message.textContent="";setBusy(button,true,"Vérification…");try{const {data,error}=await state.supabase.auth.signInWithPassword({email,password});if(error)throw error;state.user=data.user;await showWorkspace();}catch(e){message.textContent=friendlyError(e);message.classList.add("error");}finally{setBusy(button,false);}}async function signOut(){if(!state.supabase)return;const {error}=await state.supabase.auth.signOut();if(error)return toast(friendlyError(error),true);state.user=null;state.organization=null;state.organizations=[];state.isSamaAdmin=false;state.supportRequests=[];state.reviewSites=[];state.reviewProducts=[];state.reviewNotifications=[];state.orgUsage=null;$("#supportNavItem").hidden=true;$("#reviewNavItem").hidden=true;$("#userEmail").textContent="";$("#authEmail").value="";$("#authPassword").value="";setAuthMode("signin");showOnly("authPanel");toast("Déconnexion effectuée.");}
 async function showWorkspace(){
  if(!state.user)return showOnly("authPanel");
  $("#userEmail").textContent=state.user.email||"";showOnly("dashboardPanel");
@@ -29,6 +28,14 @@ async function showWorkspace(){
   ]);
   if(adminResult.error)throw adminResult.error;if(membershipResult.error)throw membershipResult.error;
   state.isSamaAdmin=Boolean(adminResult.data);
+  if(!state.isSamaAdmin){
+   await state.supabase.auth.signOut();
+   state.user=null;state.organization=null;state.organizations=[];state.role=null;
+   showOnly("authPanel");
+   $("#authMessage").textContent="Accès refusé. Cette administration est réservée au compte propriétaire de SAMA.";
+   $("#authMessage").classList.add("error");
+   return;
+  }
   const memberships=membershipResult.data||[];
   $("#supportNavItem").hidden=true;$("#reviewNavItem").hidden=true;
   const ids=memberships.map(m=>m.organization_id);
@@ -524,7 +531,7 @@ function refreshProductPricePreview(){
 }
 async function createMyBoutiques(){
  if(!state.organization)return toast("Connecte-toi à ton espace SAMA STUDIO avant de préparer les boutiques.",true);
- if(!["owner","admin"].includes(state.role))return toast("Seul le propriétaire peut préparer les boutiques.",true);
+ if(!state.isSamaAdmin||!state.organization||state.organization.owner_id!==state.user?.id||!["owner","admin"].includes(state.role))return toast("La préparation des boutiques est réservée au propriétaire SAMA.",true);
  const templates=Array.isArray(window.SAMA_SITE_TEMPLATES)?window.SAMA_SITE_TEMPLATES:[];
  const renderer=window.SAMA_STOREFRONT_RENDERER;
  if(templates.length<10||typeof renderer?.buildClientHtml!=="function")return toast("Les modèles de boutique ne sont pas prêts. Recharge la page et réessaie.",true);
@@ -588,7 +595,7 @@ async function onCreateProduct(event){
   toast("Produit enregistré avec un prix source vérifié et une marge calculée.");await reloadData();switchView("products");
  }catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}
 }
-async function onCreateOrganization(event){event.preventDefault();const name=$("#organizationNameInput").value.trim(),slug=escapeSlug($("#organizationSlugInput").value||name),button=$('button[type="submit"]',$("#organizationForm"));setBusy(button,true,"Création…");try{const {error}=await state.supabase.rpc("create_organization",{p_name:name,p_slug:slug||null});if(error)throw error;toast("Espace entreprise créé.");await showWorkspace();}catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}}
+async function onCreateOrganization(event){event.preventDefault();toast("La création d’organisations est désactivée. L’administration reste réservée au compte propriétaire SAMA.",true);}
 function bindEvents(){
  const on=(selector,event,handler,root=document)=>{const element=$(selector,root);if(element)element.addEventListener(event,handler);}; on("#authForm","submit",onAuthSubmit);
  on("#toggleAuthModeBtn","click",()=>setAuthMode(state.authMode==="signin"?"signup":"signin")); on("#signOutBtn","click",signOut);
