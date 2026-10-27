@@ -5,12 +5,9 @@ const root = process.cwd();
 for (const name of ["site-studio.html","site-studio.css","site-release.css","site-templates.js","site-studio.js","site-publisher.js"]) {
   assert.ok(existsSync(join(root,name)), "Missing required file: " + name);
 }
-const html = readFileSync(join(root,"site-studio.html"),"utf8");
-for (const asset of ["site-release.css","site-templates.js","site-studio.js","site-publisher.js"]) assert.ok(html.includes(asset),"Missing reference: "+asset);
-const editor = readFileSync(join(root,"site-studio.html"),"utf8");
-for (const field of ['id="seoTitle"', 'id="seoDescription"', 'Référencement et partage']) assert.ok(editor.includes(field), "Missing SEO editor control: " + field);
-for (const field of ['id="heroImageUrl"']) assert.ok(editor.includes(field), "Missing image editor control: " + field);
-
+const oldBuilderRoute = readFileSync(join(root,"site-studio.html"),"utf8");
+assert.ok(oldBuilderRoute.includes('http-equiv="refresh"') && oldBuilderRoute.includes('./boutiques.html'), "The former public builder route must redirect shoppers to SAMA boutiques.");
+assert.ok(oldBuilderRoute.includes('name="robots" content="noindex,follow"'), "The retired builder route must not be indexed.");
 const publisherSource = readFileSync(join(root,"site-publisher.js"),"utf8");
 assert.ok(publisherSource.includes('id="sitePagesEditor"') && publisherSource.includes('id="addSitePageBtn"'), "Missing custom page editor.");
 assert.ok(publisherSource.includes('id="mediaUploadInput"') && publisherSource.includes('function handleMediaUpload'), "Missing media library.");
@@ -24,12 +21,12 @@ assert.ok(!/sama[\s_-]*pack/i.test(templates), "Unrelated SAMA-PACK brand leaked
 const publisher = readFileSync(join(root,"site-publisher.js"),"utf8");
 for (const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","sitePagesEditor","siteMediaGrid","siteRevisionList","restoreRevision","custom-content-section","safeImageUrl"]) assert.ok(publisher.includes(marker),"Missing storefront feature: "+marker);
 for (const marker of ["useCase:", "recommendedPages:", "managementModules:", "customerJourney:", "orderMode:"]) assert.ok(templates.includes(marker), "Missing contextual template metadata: " + marker);
-const studio = readFileSync(join(root,"site-studio.js"),"utf8");
-for (const marker of ["gallery-card-context","selectedTemplateContext","managementModules"]) assert.ok(studio.includes(marker), "Missing template guidance UI: " + marker);
+const dashboard = readFileSync(join(root,"sama-dashboard.js"),"utf8");
+for (const marker of ["function createMyBoutiques","SAMA Market","SAMA Mode","SAMA Immo","calculateSalePrice","update_storefront_order_fulfillment"]) assert.ok(dashboard.includes(marker), "Missing SAMA-owned store admin feature: " + marker);
 const checkoutStart = publisher.indexOf("async function checkout()");
 const checkoutEnd = publisher.indexOf("function setBusinessContent()", checkoutStart);
 const checkout = publisher.slice(checkoutStart, checkoutEnd);
 assert.ok(checkoutStart >= 0 && checkoutEnd > checkoutStart && checkout.includes("/functions/v1/create-storefront-order") && checkout.includes("expected_unit_price") && checkout.includes("result.order"), "Published storefront must register orders online and validate prices server-side.");
 assert.ok(checkout.includes("https://wa.me/"), "Builder preview may use a WhatsApp fallback when no live storefront configuration exists.");
 for (const marker of ["https://wa.me/","D.business.whatsapp || D.business.phone","SAMA_STOREFRONT_CONFIG","window.SAMA_STOREFRONT_RENDERER"]) assert.ok(publisher.includes(marker), "Missing storefront preview or renderer behavior: " + marker);
-console.log("SAMA Commerce storefront validation passed: 10 templates, reusable renderer, online checkout and price validation.");
+console.log("SAMA Commerce validation passed: 10 first-party stores, hidden public builder, sourced pricing and online checkout.");
