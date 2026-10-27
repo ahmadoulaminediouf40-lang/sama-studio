@@ -95,12 +95,12 @@ function updatePlanSummary(){
  $("#settingsUsageSummary").textContent=(Number(usage.site_count)||0)+" / "+usage.max_sites+" sites · "+(Number(usage.product_count)||0)+" / "+usage.max_products+" produits · "+formatBytes(usage.site_html_bytes)+" / "+formatBytes(usage.max_total_site_html_bytes);
  const account=usage.account_status||state.organization?.account_status||"pending";
  $("#settingsAccountStatus").textContent=({pending:"En attente de validation",active:"Actif",suspended:"Suspendu"})[account]||account;
- $("#settingsAccountNote").textContent=account==="active"?"Ton compte est activé. Les nouveaux sites doivent encore être validés.":account==="suspended"?"Contacte SAMA Studio pour rétablir l’accès.":"SAMA Studio doit valider ton premier site avant l’activation complète du compte.";
+ $("#settingsAccountNote").textContent=account==="active"?"Ton compte est actif. Les boutiques restent en brouillon jusqu’à la publication manuelle.":account==="suspended"?"Le compte est suspendu.": "Vérifie l’état du compte avant toute publication.";
 }
 function fillSiteSelects(){["productSiteSelect","inventorySiteFilter","orderSiteFilter","siteEditorSiteSelect","managementRequestSiteSelect"].forEach(id=>{const select=$("#"+id);if(!select)return;const prev=select.value;select.replaceChildren();if(!["productSiteSelect","siteEditorSiteSelect","managementRequestSiteSelect"].includes(id)){const all=node("option","","Tous les sites");all.value="";select.appendChild(all);}state.sites.forEach(site=>{const o=node("option","",site.name);o.value=site.id;select.appendChild(o);});if([...select.options].some(o=>o.value===prev))select.value=prev;else if(["siteEditorSiteSelect","managementRequestSiteSelect","productSiteSelect"].includes(id)&&state.sites.length)select.value=state.sites[0].id;if(!state.sites.length){const o=node("option","","Crée d’abord un site");o.value="";select.appendChild(o);select.disabled=true;}else select.disabled=false;});}
 function createTable(headers){const table=node("table","data-table"),head=node("thead"),row=node("tr");headers.forEach(t=>row.appendChild(node("th","",t)));head.appendChild(row);table.appendChild(head);table.appendChild(node("tbody"));return table;}
 function setTableContent(wrapper,table,exists,message){wrapper.replaceChildren();wrapper.appendChild(exists?table:node("div","empty-state",message));}
-function statusName(status){return({draft:"Brouillon",published:"Publié",paused:"Suspendu",pending:"À traiter",confirmed:"Confirmée",preparing:"En préparation",shipped:"Expédiée",completed:"Terminée",cancelled:"Annulée",accepted:"Acceptée",in_progress:"En cours",declined:"Refusée"})[status]||status;}
+function statusName(status){return({draft:"Brouillon",published:"Publié",paused:"Suspendu",pending:"À traiter",confirmed:"Confirmée",preparing:"En préparation",shipped:"Expédiée",completed:"Terminée",cancelled:"Annulée",accepted:"Acceptée",in_progress:"En cours",declined:"Refusée",not_ordered:"À acheter",ordered:"Commandé",received:"Reçu",unavailable:"Indisponible",returned:"Retourné",awaiting_payment:"Paiement attendu",paid:"Payé",cash_on_delivery:"Paiement à la livraison",refunded:"Remboursé"})[status]||status;}
 function statusPill(status){return node("span","status-pill status-"+status,statusName(status));}
 function empty(message){return node("div","empty-state",message);}
 function renderOverview(){const active=state.products.filter(p=>p.is_active&&!p.is_demo),low=active.filter(p=>p.stock_quantity<=p.low_stock_threshold),open=state.orders.filter(o=>["pending","confirmed","preparing"].includes(o.status)),value=state.orders.filter(o=>o.status!=="cancelled").reduce((n,o)=>n+Number(o.total||0),0);$("#statSites").textContent=String(state.sites.length);$("#statPublished").textContent=state.sites.filter(s=>s.status==="published").length+" publiés";$("#statProducts").textContent=String(active.length);$("#statLowStock").textContent=low.length+" stock faible";$("#lowStockNavCount").textContent=String(low.length);$("#statOrders").textContent=String(open.length);$("#statRevenue").textContent=formatMoney(value,"XOF");const list=$("#lowStockList");list.replaceChildren();if(!low.length)list.appendChild(empty("Aucun stock faible parmi les produits vérifiés."));low.slice(0,6).forEach(p=>{const site=state.sites.find(s=>s.id===p.site_id),row=node("div","low-stock-row"),thumb=node("span","mini-thumb",(p.name||"P").charAt(0).toUpperCase()),copy=node("div","item-copy");if(p.image_url&&/^https?:\/\//i.test(p.image_url)){const img=node("img");img.src=p.image_url;img.alt="";img.loading="lazy";img.onerror=()=>img.remove();thumb.replaceChildren(img);}append(copy,node("strong","",p.name),node("small","",(site?.name||"Site")+" · Seuil "+p.low_stock_threshold));append(row,thumb,copy,node("span","stock-alert",p.stock_quantity+" en stock"));list.appendChild(row);});const recent=$("#recentOrdersList");recent.replaceChildren();if(!state.orders.length)recent.appendChild(empty("Les nouvelles commandes des sites publiés s’afficheront ici."));state.orders.slice(0,6).forEach(o=>{const row=node("div","recent-order-row"),thumb=node("span","mini-thumb","#"+String(o.order_number||"—").slice(-3)),copy=node("div","item-copy"),site=state.sites.find(s=>s.id===o.site_id);append(copy,node("strong","",o.customer_name||"Client"),node("small","",(site?.name||"Site")+" · "+formatDate(o.created_at)));append(row,thumb,copy,node("span","money-label",formatMoney(o.total,o.currency||"XOF")));recent.appendChild(row);});}
@@ -282,7 +282,7 @@ function renderSites(){
   if(site.status==="published"){
    const live=node("button","btn btn-outline","En ligne ↗");live.type="button";live.addEventListener("click",()=>{if(site.published_url)window.open(site.published_url,"_blank","noopener,noreferrer");});append(actions,live);
   }else if(canSelfPublish){
-   const publish=node("button","btn btn-primary","Publier mon site");publish.type="button";publish.addEventListener("click",()=>publishSite(site,publish));append(actions,publish);
+   const publish=node("button","btn btn-primary","Publier la boutique");publish.type="button";publish.addEventListener("click",()=>publishSite(site,publish));append(actions,publish);
    if(site.review_status==="pending")actions.appendChild(node("small","muted-small","Publication autonome disponible"));
   }else if(site.review_status==="pending"){
    const waiting=node("button","btn btn-outline","En validation");waiting.type="button";waiting.disabled=true;append(actions,waiting);
@@ -293,18 +293,231 @@ function renderSites(){
   }
   tbody.appendChild(row);
  });
- setTableContent(wrapper,table,state.sites.length>0,"Aucun site pour le moment. Ouvre le créateur Sama Studio pour créer ton premier site en ligne.");
+ setTableContent(wrapper,table,state.sites.length>0,"Aucune boutique pour le moment. Clique sur « Créer les boutiques manquantes » pour préparer les dix univers SAMA.");
  $("#siteCountBadge").textContent=state.sites.length+" site"+(state.sites.length===1?"":"s");
 }
 async function downloadSite(site){const {data,error}=await state.supabase.from("sites").select("html_content").eq("id",site.id).single();if(error)return toast(friendlyError(error),true);const url=URL.createObjectURL(new Blob([data.html_content],{type:"text/html;charset=utf-8"})),a=node("a");a.href=url;a.download=escapeSlug(site.name)+"-site.html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 async function publishSite(site,button){if(!["owner","admin"].includes(state.role))return toast("Seuls le propriétaire ou l’administrateur peuvent publier.",true);setBusy(button,true,"Publication…");toast("Préparation et mise en ligne de ton site…");try{const {data,error}=await state.supabase.functions.invoke("publish-site",{body:{site_id:site.id}});if(error)throw error;if(data?.status==="deploying")toast(data.message||"Le déploiement est encore en cours. Réessaie dans quelques instants.");else if(data?.status==="published"&&data.url)toast("Site publié : "+data.url);else if(data?.error)throw new Error(data.error);await reloadData();}catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}}
-function renderProducts(){const siteFilter=$("#inventorySiteFilter").value,q=$("#inventorySearch").value.trim().toLocaleLowerCase("fr"),items=state.products.filter(p=>(!siteFilter||p.site_id===siteFilter)&&[p.name,p.sku,p.category].join(" ").toLocaleLowerCase("fr").includes(q)),wrapper=$("#productsTableWrap"),table=createTable(["Produit / SKU","Catégorie","Description","Image","Prix (XOF)","Stock","Seuil","Actif","Vérifié",""]),tbody=$("tbody",table);items.forEach(p=>{const row=node("tr"),nameCell=node("td"),name=node("input","product-edit-input product-name"),sku=node("input","product-edit-input");name.value=p.name;name.setAttribute("aria-label","Nom du produit");sku.value=p.sku||"";sku.placeholder="SKU";sku.setAttribute("aria-label","SKU");append(nameCell,name,sku);const categoryCell=node("td"),category=node("input","product-edit-input");category.value=p.category||"";category.setAttribute("aria-label","Catégorie");categoryCell.appendChild(category);const descriptionCell=node("td"),description=node("input","product-edit-input");description.value=p.description||"";description.maxLength=1000;description.setAttribute("aria-label","Description du produit");descriptionCell.appendChild(description);const imageCell=node("td"),image=node("input","product-edit-input");image.type="url";image.value=p.image_url||"";image.maxLength=500;image.setAttribute("aria-label","URL de l’image");imageCell.appendChild(image);const priceCell=node("td"),price=node("input","product-edit-input small-number");price.type="number";price.min="0";price.step="1";price.value=String(p.price??0);price.setAttribute("aria-label","Prix XOF");priceCell.appendChild(price);const stockCell=node("td"),stock=node("input","product-edit-input small-number");stock.type="number";stock.min="0";stock.step="1";stock.value=String(p.stock_quantity??0);stock.setAttribute("aria-label","Stock");stockCell.appendChild(stock);const thresholdCell=node("td"),threshold=node("input","product-edit-input small-number");threshold.type="number";threshold.min="0";threshold.step="1";threshold.value=String(p.low_stock_threshold??5);threshold.setAttribute("aria-label","Seuil");thresholdCell.appendChild(threshold);const activeCell=node("td"),active=node("input","product-edit-check");active.type="checkbox";active.checked=Boolean(p.is_active);activeCell.appendChild(active);const verifiedCell=node("td"),verified=node("input","product-edit-check");verified.type="checkbox";verified.checked=!p.is_demo;verifiedCell.appendChild(verified);const actions=node("td","action-cell"),save=node("button","btn btn-primary","Enregistrer");save.type="button";save.addEventListener("click",async()=>{const nameValue=name.value.trim(),skuValue=sku.value.trim(),priceValue=Number(price.value),stockValue=Number(stock.value),thresholdValue=Number(threshold.value);if(!nameValue)return toast("Le nom du produit est obligatoire.",true);if(![priceValue,stockValue,thresholdValue].every(v=>Number.isFinite(v)&&Number.isInteger(v)&&v>=0))return toast("Prix, stock et seuil doivent être des nombres entiers positifs (XOF).",true);setBusy(save,true,"Sauvegarde…");try{const patch={name:nameValue,sku:skuValue||null,category:category.value.trim()||"Catalogue",description:description.value.trim().slice(0,1000),image_url:safeEditorUrl(image.value,"image du produit")||null,price:priceValue,price_label:p.price_label&&priceValue===Number(p.price)?p.price_label:formatMoney(priceValue,"XOF"),stock_quantity:stockValue,low_stock_threshold:thresholdValue,is_active:active.checked,is_demo:!verified.checked};const {error}=await state.supabase.from("products").update(patch).eq("id",p.id).eq("organization_id",state.organization.id);if(error)throw error;toast("Produit mis à jour.");await reloadData();}catch(e){toast(friendlyError(e),true);}finally{setBusy(save,false);}});const remove=node("button","delete-button","Supprimer");remove.type="button";remove.addEventListener("click",async()=>{if(!confirm("Supprimer le produit « "+p.name+" » ? Une suppression est impossible si ce produit figure dans une commande."))return;try{const {error}=await state.supabase.from("products").delete().eq("id",p.id).eq("organization_id",state.organization.id);if(error)throw error;toast("Produit supprimé.");await reloadData();}catch(e){toast(friendlyError(e),true);}});append(actions,save,remove);append(row,nameCell,categoryCell,descriptionCell,imageCell,priceCell,stockCell,thresholdCell,activeCell,verifiedCell,actions);tbody.appendChild(row);});setTableContent(wrapper,table,items.length>0,q?"Aucun produit ne correspond à cette recherche.":"Aucun produit. Ajoute un article ou importe le catalogue d’un site client.");}
-function renderOrders(){const statusFilter=$("#orderStatusFilter").value,siteFilter=$("#orderSiteFilter").value,items=state.orders.filter(o=>(!statusFilter||o.status===statusFilter)&&(!siteFilter||o.site_id===siteFilter)),wrapper=$("#ordersTableWrap"),table=createTable(["Commande","Client","Articles","Total","Date","Statut"]),tbody=$("tbody",table);items.forEach(o=>{const row=node("tr"),orderCell=node("td"),customer=node("td"),itemCell=node("td"),total=node("td"),date=node("td","",formatDate(o.created_at)),statusCell=node("td"),site=state.sites.find(s=>s.id===o.site_id),lines=(o.order_items||[]).map(item=>(item.quantity||1)+" × "+item.product_name);append(orderCell,node("strong","","#"+o.order_number),node("small","",site?.name||"Site"));append(customer,node("strong","",o.customer_name),node("small","",o.customer_phone+(o.customer_address?" · "+o.customer_address:"")));append(itemCell,node("span","",lines.length?lines.slice(0,2).join(", ")+(lines.length>2?"…":""):"Détail disponible"),node("small","",lines.length+" référence(s)"));total.appendChild(node("strong","",formatMoney(o.total,o.currency||"XOF")));if(o.status==="cancelled"||o.status==="completed")statusCell.appendChild(statusPill(o.status));else{const select=node("select","product-edit-input");select.setAttribute("aria-label","Statut de la commande #"+o.order_number);const allowed={pending:["pending","confirmed","cancelled"],confirmed:["confirmed","preparing","cancelled"],preparing:["preparing","shipped","cancelled"],shipped:["shipped","completed"]}[o.status]||[o.status];allowed.forEach(s=>{const option=node("option","",statusName(s));option.value=s;option.selected=s===o.status;select.appendChild(option);});select.disabled=!["owner","admin","staff"].includes(state.role);select.addEventListener("change",async()=>{const next=select.value;if(next==="cancelled"&&!confirm("Annuler la commande #"+o.order_number+" ? Le stock des articles sera restitué.")){select.value=o.status;return;}select.disabled=true;try{const {error}=await state.supabase.rpc("update_order_status",{p_order_id:o.id,p_status:next});if(error)throw error;toast("Statut de la commande mis à jour.");await reloadData();}catch(e){toast(friendlyError(e),true);select.disabled=false;select.value=o.status;}});statusCell.appendChild(select);}append(row,orderCell,customer,itemCell,total,date,statusCell);tbody.appendChild(row);});setTableContent(wrapper,table,items.length>0,"Aucune commande pour ces filtres. Les commandes des boutiques publiées apparaîtront ici.");}
+function calculateSalePrice(sourcePrice,rate,shipping,otherCosts,margin){
+ const values=[Number(sourcePrice),Number(rate),Number(shipping),Number(otherCosts),Number(margin)];
+ if(!values.every(Number.isFinite)||values[0]<=0||values[1]<=0||values[2]<0||values[3]<0||values[4]<0||values[4]>500)return null;
+ const base=values[0]*values[1]+values[2]+values[3];
+ return Math.ceil((base*(1+values[4]/100))/100)*100;
+}
+function sourceIsFresh(product){const t=product?.source_checked_at?new Date(product.source_checked_at).getTime():0;return Boolean(product?.source_url&&/^https?:\/\//i.test(product.source_url)&&product.source_price>0&&t>0&&t>Date.now()-7*24*60*60*1000);}
+function currencySelect(current){const sel=node("select","product-edit-input");[["XOF","XOF"],["EUR","EUR"],["USD","USD"],["GMD","GMD"],["GNF","GNF"],["MAD","MAD"]].forEach(([v,label])=>{const o=node("option","",label);o.value=v;o.selected=v===(current||"XOF");sel.appendChild(o);});return sel;}
+function labeledControl(labelText,control,wide=false){const label=node("label",wide?"fulfillment-field wide-field":"fulfillment-field");label.appendChild(node("span","",labelText));label.appendChild(control);return label;}
+function renderProducts(){
+ const siteFilter=$("#inventorySiteFilter").value,q=$("#inventorySearch").value.trim().toLocaleLowerCase("fr");
+ const items=state.products.filter(p=>(!siteFilter||p.site_id===siteFilter)&&[p.name,p.sku,p.category,p.source_store_name,p.source_url].join(" ").toLocaleLowerCase("fr").includes(q));
+ const wrapper=$("#productsTableWrap"),table=createTable(["Produit","Source en ligne","Coût source estimé","Marge / vente","Mode & disponibilité","État","Actions"]),tbody=$("tbody",table);
+ items.forEach(p=>{
+  const row=node("tr"),productCell=node("td"),sourceCell=node("td"),costCell=node("td"),marginCell=node("td"),modeCell=node("td"),stateCell=node("td"),actions=node("td","action-cell");
+  const name=node("input","product-edit-input product-name");name.value=p.name||"";name.setAttribute("aria-label","Nom du produit");
+  const sku=node("input","product-edit-input");sku.value=p.sku||"";sku.placeholder="SKU";sku.setAttribute("aria-label","Référence SKU");
+  const category=node("input","product-edit-input");category.value=p.category||"Catalogue";category.placeholder="Catégorie";category.setAttribute("aria-label","Catégorie");
+  const description=node("input","product-edit-input");description.value=p.description||"";description.placeholder="Description";description.maxLength=1000;description.setAttribute("aria-label","Description");
+  const image=node("input","product-edit-input");image.type="url";image.value=p.image_url||"";image.placeholder="URL image";image.setAttribute("aria-label","URL image");
+  append(productCell,name,sku,category,description,image);
+  const sourceName=node("input","product-edit-input");sourceName.value=p.source_store_name||"";sourceName.placeholder="Nom du vendeur";sourceName.setAttribute("aria-label","Boutique source");
+  const sourceUrl=node("input","product-edit-input");sourceUrl.type="url";sourceUrl.value=p.source_url||"";sourceUrl.placeholder="https://…";sourceUrl.setAttribute("aria-label","Lien source du produit");
+  const sourceLink=node("a","source-reference-link",p.source_url?"Ouvrir le produit ↗":"Lien source à ajouter");sourceLink.href=p.source_url||"#";sourceLink.target="_blank";sourceLink.rel="noopener noreferrer";
+  sourceUrl.addEventListener("input",()=>{sourceLink.href=sourceUrl.value||"#";sourceLink.textContent=sourceUrl.value?"Ouvrir le produit ↗":"Lien source à ajouter";});
+  append(sourceCell,sourceName,sourceUrl,sourceLink);
+  const srcPrice=node("input","product-edit-input small-number");srcPrice.type="number";srcPrice.min="0.01";srcPrice.step="0.01";srcPrice.value=String(p.source_price??"");srcPrice.setAttribute("aria-label","Prix fournisseur");
+  const srcCurrency=currencySelect(p.source_currency||"XOF");
+  const exchange=node("input","product-edit-input small-number");exchange.type="number";exchange.min="0.0001";exchange.step="0.0001";exchange.value=String(p.source_exchange_rate??1);exchange.setAttribute("aria-label","Taux de conversion en XOF");
+  const sourceShip=node("input","product-edit-input small-number");sourceShip.type="number";sourceShip.min="0";sourceShip.step="1";sourceShip.value=String(p.source_shipping_xof??0);sourceShip.setAttribute("aria-label","Frais de livraison source en XOF");
+  const otherCosts=node("input","product-edit-input small-number");otherCosts.type="number";otherCosts.min="0";otherCosts.step="1";otherCosts.value=String(p.other_costs_xof??0);otherCosts.setAttribute("aria-label","Autres frais XOF");
+  append(costCell,labeledControl("Prix source",srcPrice),labeledControl("Devise",srcCurrency),labeledControl("1 unité = XOF",exchange),labeledControl("Livraison source (XOF)",sourceShip),labeledControl("Autres frais (XOF)",otherCosts));
+  const margin=node("input","product-edit-input small-number");margin.type="number";margin.min="0";margin.max="500";margin.step="1";margin.value=String(p.margin_percent??30);margin.setAttribute("aria-label","Marge en pourcentage");
+  const sellPrice=node("input","product-edit-input small-number");sellPrice.type="number";sellPrice.readOnly=true;sellPrice.value=String(p.price??0);sellPrice.setAttribute("aria-label","Prix de vente calculé XOF");
+  const costHint=node("small","muted-small","");
+  const calc=()=>{const sale=calculateSalePrice(srcPrice.value,exchange.value,sourceShip.value,otherCosts.value,margin.value);sellPrice.value=sale===null?"":String(sale);const cost=Number(srcPrice.value)*Number(exchange.value)+Number(sourceShip.value)+Number(otherCosts.value);costHint.textContent=Number.isFinite(cost)&&cost>0?"Coût estimé : "+formatMoney(cost,"XOF")+" · vente : "+(sale===null?"à vérifier":formatMoney(sale,"XOF")):"Renseigne le coût fournisseur";};
+  [srcPrice,exchange,sourceShip,otherCosts,margin].forEach(el=>el.addEventListener("input",calc));srcCurrency.addEventListener("change",()=>{if(srcCurrency.value==="XOF")exchange.value="1";calc();});calc();
+  append(marginCell,labeledControl("Marge cible (%)",margin),labeledControl("Prix client (XOF)",sellPrice),costHint);
+  const fulfillment=node("select","product-edit-input");
+  [["on_demand","À la commande"],["supplier_direct","Livraison directe fournisseur"],["stocked","Stock déjà disponible"]].forEach(([v,label])=>{const o=node("option","",label);o.value=v;o.selected=v===(p.fulfillment_mode||"on_demand");fulfillment.appendChild(o);});
+  const stock=node("input","product-edit-input small-number");stock.type="number";stock.min="0";stock.step="1";stock.value=String(p.stock_quantity??0);stock.setAttribute("aria-label","Stock actuel");
+  const threshold=node("input","product-edit-input small-number");threshold.type="number";threshold.min="0";threshold.step="1";threshold.value=String(p.low_stock_threshold??5);threshold.setAttribute("aria-label","Seuil de stock faible");
+  append(modeCell,labeledControl("Approvisionnement",fulfillment),labeledControl("Stock existant",stock),labeledControl("Seuil d’alerte",threshold));
+  const active=node("input","product-edit-check");active.type="checkbox";active.checked=Boolean(p.is_active);
+  const fresh=node("input","product-edit-check");fresh.type="checkbox";fresh.checked=false;
+  const age=node("small","muted-small",sourceIsFresh(p)?"Référence vérifiée le "+formatDate(p.source_checked_at):"Source absente ou expirée");
+  append(stateCell,labeledControl("Actif sur la boutique",active),labeledControl("J’ai revérifié le prix aujourd’hui",fresh),age);
+  const save=node("button","btn btn-primary","Enregistrer");save.type="button";
+  save.addEventListener("click",async()=>{
+   const nameValue=name.value.trim(),srcName=sourceName.value.trim(),srcUrl=sourceUrl.value.trim(),srcValue=Number(srcPrice.value),rate=Number(exchange.value),ship=Number(sourceShip.value),costs=Number(otherCosts.value),marginValue=Number(margin.value),stockValue=Number(stock.value),thresholdValue=Number(threshold.value);
+   if(!nameValue||!srcName||!/^https?:\/\//i.test(srcUrl))return toast("Le produit doit avoir un nom, un vendeur source et un lien HTTP(S) valide.",true);
+   if(!Number.isFinite(srcValue)||srcValue<=0||!Number.isFinite(rate)||rate<=0||![ship,costs,marginValue,stockValue,thresholdValue].every(Number.isFinite)||ship<0||costs<0||marginValue<0||marginValue>500||!Number.isInteger(stockValue)||stockValue<0||!Number.isInteger(thresholdValue)||thresholdValue<0)return toast("Vérifie le prix source, la conversion, les coûts, la marge et le stock.",true);
+   const sourceChanged=srcName!==String(p.source_store_name||"")||srcUrl!==String(p.source_url||"")||srcValue!==Number(p.source_price)||srcCurrency.value!==(p.source_currency||"XOF")||rate!==Number(p.source_exchange_rate||1)||ship!==Number(p.source_shipping_xof||0)||costs!==Number(p.other_costs_xof||0);
+   if(sourceChanged&&!fresh.checked)return toast("Coche la vérification après avoir ouvert le lien fournisseur et contrôlé le prix actuel.",true);
+   const newPrice=calculateSalePrice(srcValue,rate,ship,costs,marginValue);
+   if(newPrice===null)return toast("Impossible de calculer un prix de vente avec ces valeurs.",true);
+   if(fulfillment.value==="stocked"&&stockValue<1&&active.checked)return toast("Pour vendre un produit en stock, indique un stock supérieur à zéro ou choisis l’approvisionnement à la commande.",true);
+   const patch={name:nameValue,sku:sku.value.trim()||null,category:category.value.trim()||"Catalogue",description:description.value.trim().slice(0,1000),image_url:safeEditorUrl(image.value,"image du produit")||null,price:newPrice,price_label:formatMoney(newPrice,"XOF"),currency:"XOF",stock_quantity:stockValue,low_stock_threshold:thresholdValue,is_active:active.checked,is_demo:false,source_store_name:srcName,source_url:srcUrl,source_price:srcValue,source_currency:srcCurrency.value,source_exchange_rate:rate,source_shipping_xof:ship,other_costs_xof:costs,margin_percent:marginValue,fulfillment_mode:fulfillment.value};
+   if(fresh.checked)patch.source_checked_at=new Date().toISOString();
+   setBusy(save,true,"Sauvegarde…");
+   try{const {error}=await state.supabase.from("products").update(patch).eq("id",p.id).eq("organization_id",state.organization.id);if(error)throw error;toast("Produit et référence de prix mis à jour.");await reloadData();}
+   catch(e){toast(friendlyError(e),true);}finally{setBusy(save,false);}
+  });
+  const remove=node("button","delete-button","Supprimer");remove.type="button";remove.addEventListener("click",async()=>{if(!confirm("Supprimer le produit « "+p.name+" » ? Il restera impossible de le supprimer s’il est associé à une commande."))return;try{const {error}=await state.supabase.from("products").delete().eq("id",p.id).eq("organization_id",state.organization.id);if(error)throw error;toast("Produit supprimé.");await reloadData();}catch(e){toast(friendlyError(e),true);}});
+  append(actions,save,remove);
+  [row].forEach(()=>{});
+  tbody.appendChild(row);
+  append(row,productCell,sourceCell,costCell,marginCell,modeCell,stateCell,actions);
+ });
+ setTableContent(wrapper,table,items.length>0,q?"Aucun produit ne correspond à cette recherche.":"Ajoute un produit avec son lien source pour calculer et vérifier ta marge avant publication.");
+}
+function orderOptionSelect(values,current,label){
+ const select=node("select","product-edit-input");select.setAttribute("aria-label",label);
+ values.forEach(([v,text])=>{const opt=node("option","",text);opt.value=v;opt.selected=v===current;select.appendChild(opt);});
+ return select;
+}
+async function saveOrderFulfillment(order,controls,button){
+ if(!["owner","admin","staff"].includes(state.role))return toast("Tu n’as pas les droits nécessaires pour modifier cette commande.",true);
+ setBusy(button,true,"Enregistrement…");
+ const parseOptional=(input)=>String(input.value||"").trim()===""?null:Number(input.value);
+ const numberValue=(input)=>String(input.value||"").trim()===""?0:Number(input.value);
+ const eta=controls.eta.value?new Date(controls.eta.value+"T12:00:00").toISOString():null;
+ const args={p_order_id:order.id,p_payment_status:controls.payment.value,p_payment_method:controls.method.value.trim(),p_procurement_status:controls.procurement.value,p_supplier_order_reference:controls.reference.value.trim(),p_delivery_provider:controls.provider.value.trim(),p_tracking_code:controls.tracking.value.trim(),p_estimated_delivery_at:eta,p_delivery_fee_xof:numberValue(controls.deliveryFee),p_estimated_delivery_cost_xof:numberValue(controls.deliveryCost),p_actual_purchase_cost_xof:parseOptional(controls.purchaseActual),p_actual_delivery_cost_xof:parseOptional(controls.deliveryActual)};
+ try{const {error}=await state.supabase.rpc("update_storefront_order_fulfillment",args);if(error)throw error;toast("Suivi d’approvisionnement, paiement et livraison enregistré.");await reloadData();}
+ catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}
+}
+function renderOrders(){
+ const statusFilter=$("#orderStatusFilter").value,siteFilter=$("#orderSiteFilter").value;
+ const items=state.orders.filter(o=>(!statusFilter||o.status===statusFilter)&&(!siteFilter||o.site_id===siteFilter));
+ const wrapper=$("#ordersTableWrap"),table=createTable(["Commande","Client & adresse","Articles et références source","Montant client","Marge sur coûts saisis","État","Approvisionnement & livraison"]),tbody=$("tbody",table);
+ items.forEach(o=>{
+  const row=node("tr"),orderCell=node("td"),customer=node("td"),itemCell=node("td"),total=node("td"),marginCell=node("td"),statusCell=node("td"),fulfillmentCell=node("td");
+  const site=state.sites.find(s=>s.id===o.site_id);
+  append(orderCell,node("strong","","#"+o.order_number),node("small","",site?.name||"Boutique"),node("small","",formatDate(o.created_at)));
+  append(customer,node("strong","",o.customer_name||"Client"),node("small","",o.customer_phone||""),node("small","",o.customer_address||"Adresse à confirmer"),node("small","",o.notes||""));
+  const lines=o.order_items||[];
+  lines.forEach(item=>{
+    const line=node("div","order-product-line");
+    append(line,node("strong","",String(item.quantity||1)+" × "+item.product_name),node("small","",formatMoney(item.unit_price,"XOF")+" chacun"));
+    if(item.source_url&&/^https?:\/\//i.test(item.source_url)){const link=node("a","source-reference-link","Acheter chez "+(item.source_store_name||"le fournisseur")+" ↗");link.href=item.source_url;link.target="_blank";link.rel="noopener noreferrer";append(line,link);}
+    itemCell.appendChild(line);
+  });
+  total.appendChild(node("strong","",formatMoney(o.total,o.currency||"XOF")));
+  if(Number(o.delivery_fee_xof||0)>0)total.appendChild(node("small","", "Livraison facturée : "+formatMoney(o.delivery_fee_xof,"XOF")));
+  const purchaseCost=o.actual_purchase_cost_xof==null?Number(o.estimated_purchase_cost_xof||0):Number(o.actual_purchase_cost_xof);
+  const deliveryCost=o.actual_delivery_cost_xof==null?Number(o.estimated_delivery_cost_xof||0):Number(o.actual_delivery_cost_xof);
+  const estimatedProfit=Number(o.total||0)+Number(o.delivery_fee_xof||0)-purchaseCost-deliveryCost;
+  const actual= o.actual_purchase_cost_xof!=null&&o.actual_delivery_cost_xof!=null;
+  append(marginCell,node("strong","",formatMoney(estimatedProfit,"XOF")),node("small","",actual?"Calculé avec les coûts réels saisis":"Prévision · à confirmer après achat et livraison"));
+  if(o.status==="cancelled"||o.status==="completed")statusCell.appendChild(statusPill(o.status));
+  else{
+    const select=orderOptionSelect(({pending:[["pending","À traiter"],["confirmed","Confirmée"],["cancelled","Annulée"]],confirmed:[["confirmed","Confirmée"],["preparing","En préparation"],["cancelled","Annulée"]],preparing:[["preparing","En préparation"],["shipped","Expédiée"],["cancelled","Annulée"]],shipped:[["shipped","Expédiée"],["completed","Terminée"]]}[o.status]||[[o.status,statusName(o.status)]]),o.status,"État de la commande #"+o.order_number);
+    select.disabled=!["owner","admin","staff"].includes(state.role);
+    select.addEventListener("change",async()=>{const next=select.value;if(next==="cancelled"&&!confirm("Annuler la commande #"+o.order_number+" ? Le stock local sera restitué uniquement pour les produits déjà en stock.")){select.value=o.status;return;}select.disabled=true;try{const {error}=await state.supabase.rpc("update_order_status",{p_order_id:o.id,p_status:next});if(error)throw error;toast("État de la commande mis à jour.");await reloadData();}catch(e){toast(friendlyError(e),true);select.disabled=false;select.value=o.status;}});
+    statusCell.appendChild(select);
+  }
+  const details=node("details","fulfillment-details"),summary=node("summary","","Gérer achat & livraison");details.appendChild(summary);
+  const form=node("div","fulfillment-grid");
+  const controls={
+    procurement:orderOptionSelect([["not_ordered","À acheter"],["ordered","Commandé chez le fournisseur"],["received","Produit reçu"],["unavailable","Indisponible chez le fournisseur"],["returned","Retourné"]],o.procurement_status||"not_ordered","État d’approvisionnement"),
+    payment:orderOptionSelect([["pending","Non confirmé"],["awaiting_payment","Paiement attendu"],["paid","Payé"],["cash_on_delivery","Paiement à la livraison"],["refunded","Remboursé"]],o.payment_status||"pending","État du paiement"),
+    method:node("input","product-edit-input"),reference:node("input","product-edit-input"),provider:node("input","product-edit-input"),tracking:node("input","product-edit-input"),eta:node("input","product-edit-input"),deliveryFee:node("input","product-edit-input small-number"),deliveryCost:node("input","product-edit-input small-number"),purchaseActual:node("input","product-edit-input small-number"),deliveryActual:node("input","product-edit-input small-number")
+  };
+  controls.method.value=o.payment_method||"";controls.method.placeholder="Ex. Wave, Orange Money, espèces";controls.reference.value=o.supplier_order_reference||"";controls.reference.placeholder="Référence d’achat fournisseur";controls.provider.value=o.delivery_provider||"";controls.provider.placeholder="Coursier / transporteur";controls.tracking.value=o.tracking_code||"";controls.tracking.placeholder="N° de suivi / lien";
+  controls.eta.type="date";controls.eta.value=o.estimated_delivery_at?new Date(o.estimated_delivery_at).toISOString().slice(0,10):"";
+  [[controls.deliveryFee,o.delivery_fee_xof],[controls.deliveryCost,o.estimated_delivery_cost_xof],[controls.purchaseActual,o.actual_purchase_cost_xof],[controls.deliveryActual,o.actual_delivery_cost_xof]].forEach(([el,val])=>{el.type="number";el.min="0";el.step="1";el.value=val==null?"":String(val);});
+  append(form,
+    labeledControl("Approvisionnement",controls.procurement),
+    labeledControl("Paiement",controls.payment),
+    labeledControl("Mode de paiement",controls.method),
+    labeledControl("Référence fournisseur",controls.reference),
+    labeledControl("Coursier / transporteur",controls.provider),
+    labeledControl("Suivi / tracking",controls.tracking),
+    labeledControl("Livraison estimée",controls.eta),
+    labeledControl("Frais livraison facturés au client (XOF)",controls.deliveryFee),
+    labeledControl("Coût livraison estimé (XOF)",controls.deliveryCost),
+    labeledControl("Coût d’achat réel (XOF)",controls.purchaseActual),
+    labeledControl("Livraison réellement payée (XOF)",controls.deliveryActual)
+  );
+  const save=node("button","btn btn-primary","Enregistrer le suivi");save.type="button";save.addEventListener("click",()=>saveOrderFulfillment(o,controls,save));form.appendChild(save);details.appendChild(form);fulfillmentCell.appendChild(details);
+  append(row,orderCell,customer,itemCell,total,marginCell,statusCell,fulfillmentCell);tbody.appendChild(row);
+ });
+ setTableContent(wrapper,table,items.length>0,"Aucune commande pour ces filtres. Les commandes des boutiques publiées apparaîtront ici.");
+}
 function filterNavigation(query){const q=String(query||"").trim().toLocaleLowerCase("fr");const items=$(".nav-item");let matches=0;items.forEach(item=>{const match=!q||item.textContent.toLocaleLowerCase("fr").includes(q);item.classList.toggle("search-hidden",!match);if(match&&!item.hidden)matches++;});const empty=$("#featureSearchEmpty");if(empty)empty.hidden=!q||matches>0;}
-function switchView(view){const map={overview:["VUE D’ENSEMBLE","Bonjour.","Voici ce qui se passe dans ton entreprise."],sites:["SITES CLIENTS","Tes sites clients.","Importe, gère et publie les sites de ton entreprise."],products:["INVENTAIRE","Produits & stocks.","Un inventaire centralisé par site, avec alertes de stock faible."],orders:["COMMANDES","Les commandes.","Suis les commandes, mets à jour leur statut et gère les annulations."],settings:["PARAMÈTRES","Ton espace entreprise.","Retrouve ta formule, ton utilisation et les informations de ton entreprise."],manage:["INFORMATIONS DU SITE","Personnalise ton site.","Modifie les textes, coordonnées, liens et couleurs de ton site."],content:["PAGES & MÉDIAS","Le contenu de ton site.","Crée des pages, organise les images et retrouve les versions enregistrées."],support:["SAMA STUDIO","Demandes de gestion.","Examine les demandes des clients, accepte explicitement la prise en charge ou refuse-la."],review:["VALIDATION DES SITES","Les sites à valider.","Vérifie les projets des clients, demande des corrections ou approuve leur publication."]};state.view=view in map?view:"overview";Object.keys(map).forEach(k=>$("#view-"+k).classList.toggle("hidden",k!==state.view));$$(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));$("#pageEyebrow").textContent=map[state.view][0];$("#pageTitle").textContent=map[state.view][1];$("#pageSubtitle").textContent=map[state.view][2];}
+function switchView(view){const map={overview:["VUE D’ENSEMBLE","Bonjour.","Voici les boutiques, les commandes et les livraisons à suivre."],sites:["MES BOUTIQUES","Tes boutiques.","Gère les dix enseignes, leurs catalogues et leur publication."],products:["APPROVISIONNEMENT","Produits & marges.","Référence les prix fournisseurs, calcule ta marge et choisis comment chaque article sera livré."],orders:["COMMANDES & LIVRAISONS","Commandes reçues en ligne.","Confirme la disponibilité, achète chez le fournisseur et suis la remise au client."],settings:["PARAMÈTRES","Ton espace SAMA Commerce.","Retrouve ton compte, tes accès et les informations de la plateforme."],manage:["IDENTITÉ & LIVRAISON","Informations des boutiques.","Modifie les coordonnées, les règles de livraison et les éléments de présentation."],content:["PAGES & MÉDIAS","Contenu des boutiques.","Crée des pages utiles, ajoute les informations de livraison et garde les versions enregistrées."],support:["SAMA COMMERCE","Demandes internes.","Administration centrale des boutiques SAMA."],review:["BOUTIQUES À PUBLIER","Vérification avant publication.","Contrôle les prix sources, les produits et les marges avant de mettre une boutique en ligne."]};state.view=view in map?view:"overview";Object.keys(map).forEach(k=>$("#view-"+k).classList.toggle("hidden",k!==state.view));$$(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));$("#pageEyebrow").textContent=map[state.view][0];$("#pageTitle").textContent=map[state.view][1];$("#pageSubtitle").textContent=map[state.view][2];}
 function parseExportedHtml(html){const marker="window.SAMA_STORE_DATA=",i=html.indexOf(marker);if(i<0)return null;const start=i+marker.length,end=html.indexOf(";(",start);if(end<0)return null;try{const d=JSON.parse(html.slice(start,end));return d&&typeof d==="object"&&d.business&&Array.isArray(d.products)?d:null;}catch{return null;}}
 async function onCreateSite(event){event.preventDefault();if(!state.organization)return toast("Crée ou sélectionne une entreprise avant de continuer.",true);const button=$('button[type="submit"]',$("#siteForm")),file=$("#siteHtmlFile").files?.[0],name=$("#siteNameInput").value.trim(),slug=escapeSlug($("#siteSlugInput").value);if(!file)return toast("Choisis le fichier HTML exporté.",true);if(file.size>2900000)return toast("Le HTML dépasse la limite de 2,9 Mo.",true);if(!/^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/.test(slug))return toast("Le sous-domaine doit contenir 3 à 60 caractères, minuscules, chiffres et tirets.",true);setBusy(button,true,"Importation…");try{const html=await file.text();if(!html.toLowerCase().includes("<!doctype html"))throw new Error("Le fichier n’a pas l’air d’être un document HTML.");const data=parseExportedHtml(html),templateId=data?.template?.id||$("#siteTemplateInput").value||"distribution";const {data:site,error}=await state.supabase.from("sites").insert({organization_id:state.organization.id,name,slug,template_id:templateId,status:"draft",html_content:html,created_by:state.user.id}).select("id,name,slug").single();if(error)throw error;let imported=0;if(data?.products?.length){const rows=data.products.slice(0,100).map(p=>({organization_id:state.organization.id,site_id:site.id,external_ref:String(p.id||"").slice(0,180)||null,name:String(p.name||"Produit importé").trim().slice(0,180),sku:null,category:String(p.category||p.type||"Catalogue").slice(0,100),description:String(p.description||"").slice(0,1000),image_url:/^https?:\/\//i.test(String(p.image||""))?String(p.image).slice(0,500):null,price:parsePrice(p.price),price_label:String(p.price||"Prix à confirmer").slice(0,100),currency:"XOF",stock_quantity:0,low_stock_threshold:5,is_active:true,is_demo:true}));if(rows.length){const {error:productError}=await state.supabase.from("products").insert(rows);if(productError){await state.supabase.from("sites").delete().eq("id",site.id);throw productError;}imported=rows.length;}}$("#siteForm").reset();$("#siteFormHint").textContent="Les produits importés sont à vérifier.";$("#siteTemplateInput").value=templateId;toast("Site enregistré"+(imported?"; "+imported+" produit(s) importé(s) à vérifier.":". Ajoute ensuite ses produits dans l’inventaire."));await reloadData();switchView("sites");}catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}}
-async function onCreateProduct(event){event.preventDefault();const button=$('button[type="submit"]',$("#productForm")),siteId=$("#productSiteSelect").value;if(!siteId)return toast("Crée d’abord un site client.",true);const price=Number($("#productPriceInput").value),stock=Number($("#productStockInput").value),threshold=Number($("#productThresholdInput").value);if(![price,stock,threshold].every(v=>Number.isFinite(v)&&Number.isInteger(v)&&v>=0))return toast("Prix, stock et seuil doivent être des nombres entiers positifs.",true);setBusy(button,true,"Ajout…");try{const {error}=await state.supabase.from("products").insert({organization_id:state.organization.id,site_id:siteId,sku:$("#productSkuInput").value.trim()||null,name:$("#productNameInput").value.trim(),category:$("#productCategoryInput").value.trim()||"Catalogue",description:$("#productDescriptionInput").value.trim(),image_url:$("#productImageInput").value.trim()||null,price,price_label:formatMoney(price,"XOF"),currency:"XOF",stock_quantity:stock,low_stock_threshold:threshold,is_active:true,is_demo:false});if(error)throw error;$("#productForm").reset();$("#productCategoryInput").value="Catalogue";$("#productPriceInput").value="0";$("#productStockInput").value="0";$("#productThresholdInput").value="5";toast("Produit ajouté à l’inventaire.");await reloadData();switchView("products");}catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}}
+function refreshProductPricePreview(){
+ const source=Number($("#productSourcePriceInput")?.value),rate=Number($("#productExchangeRateInput")?.value),ship=Number($("#productSourceShippingInput")?.value),other=Number($("#productOtherCostsInput")?.value),margin=Number($("#productMarginInput")?.value);
+ const cost=source*rate+ship+other,price=calculateSalePrice(source,rate,ship,other,margin),priceField=$("#productPriceInput"),hint=$("#productPricePreviewText");
+ if(priceField)priceField.value=price===null?"":String(price);
+ if(hint)hint.textContent=Number.isFinite(cost)&&cost>0&&price!==null?"Coût estimé : "+formatMoney(cost,"XOF")+" · marge cible : "+margin+" % · vente : "+formatMoney(price,"XOF"):"Renseigne un prix source valide pour calculer la vente.";
+}
+async function createMyBoutiques(){
+ if(!state.organization)return toast("Connecte-toi à ton espace SAMA STUDIO avant de préparer les boutiques.",true);
+ if(!["owner","admin"].includes(state.role))return toast("Seul le propriétaire peut préparer les boutiques.",true);
+ const templates=Array.isArray(window.SAMA_SITE_TEMPLATES)?window.SAMA_SITE_TEMPLATES:[];
+ const renderer=window.SAMA_STOREFRONT_RENDERER;
+ if(templates.length<10||typeof renderer?.buildClientHtml!=="function")return toast("Les modèles de boutique ne sont pas prêts. Recharge la page et réessaie.",true);
+ const config=[
+  ["distribution","SAMA Market","sama-market"],["fashion","SAMA Mode","sama-mode"],["beauty","SAMA Beauté","sama-beaute"],
+  ["electronics","SAMA Tech","sama-tech"],["home","SAMA Maison","sama-maison"],["grocery","SAMA Épicerie","sama-epicerie"],
+  ["restaurant","SAMA Food","sama-food"],["bakery","SAMA Délices","sama-delices"],["services","SAMA Services","sama-services"],
+  ["realestate","SAMA Immo","sama-immo"]
+ ];
+ const button=$("#prepareBoutiquesBtn"),label=$("#prepareBoutiquesStatus");
+ setBusy(button,true,"Préparation des boutiques…");if(label)label.textContent="Création des fiches en brouillon…";
+ let created=0,existing=0;
+ try{
+  for(const [templateId,shopName,slug] of config){
+   if(state.sites.some(site=>site.slug===slug)){existing++;continue;}
+   const template=templates.find(t=>t.id===templateId);
+   if(!template)throw new Error("Modèle manquant : "+templateId);
+   const data={
+    schemaVersion:"1.1.0",product:"Sama Commerce",status:"draft",
+    template:{id:template.id,number:template.number,name:template.name,sector:template.sector,layout:template.layout,useCase:template.useCase||"",recommendedPages:template.recommendedPages||[],managementModules:template.managementModules||[],customerJourney:template.customerJourney||"",catalogLabel:template.catalogLabel||"Catalogue",orderMode:"online",eyebrow:template.eyebrow||template.sector,heroImage:template.heroImage,features:template.features||[],navigation:template.nav||[]},
+    business:{name:shopName,headline:template.headline||shopName,city:"Dakar, Sénégal",phone:"",whatsapp:"",email:"",address:"",description:template.body||("Découvrez la sélection "+template.sector+" de SAMA."),hours:"Commandes en ligne, 24 h/24. La disponibilité est confirmée avant validation.",delivery:"Livraison à domicile organisée avec un prestataire. Le tarif et le délai sont confirmés avant validation.",instagram:"",facebook:"",logoUrl:"",seoTitle:(shopName+" | Boutique en ligne au Sénégal").slice(0,70),seoDescription:("Découvrez "+template.sector+" chez "+shopName+". Commande en ligne et livraison au Sénégal.").slice(0,170)},
+    design:{primaryColor:template.color||"#17633d",secondaryColor:template.soft||"#e9f5ec",darkColor:template.dark||"#153c2c"},
+    includedCapabilities:template.features||[],products:[],pages:[],media:[],createdAt:new Date().toISOString(),
+    note:"Boutique propre SAMA. Catalogue sans exemples : les produits, prix et liens sources doivent être vérifiés avant publication."
+   };
+   const html=renderer.buildClientHtml(data);
+   const {error}=await state.supabase.from("sites").insert({organization_id:state.organization.id,name:shopName,slug,template_id:templateId,status:"draft",review_status:"draft",review_note:null,submitted_at:null,html_content:html,created_by:state.user.id});
+   if(error)throw error;
+   created++;
+   if(label)label.textContent=created+" boutique(s) préparée(s)…";
+  }
+  await reloadData();switchView("sites");
+  const message=created+" boutique(s) créée(s), "+existing+" déjà présente(s). Ajoute des produits avec leurs prix sources avant de publier.";
+  if(label)label.textContent=message;toast(message);
+ }catch(e){if(label)label.textContent="La préparation s’est arrêtée. Les boutiques déjà créées sont conservées.";toast(friendlyError(e),true);try{await reloadData();}catch(_){}}
+ finally{setBusy(button,false);}
+}
+async function onCreateProduct(event){
+ event.preventDefault();
+ const button=$('button[type="submit"]',$("#productForm")),siteId=$("#productSiteSelect").value;
+ if(!siteId)return toast("Crée d’abord tes boutiques avec le bouton « Créer les boutiques manquantes ».",true);
+ const name=$("#productNameInput").value.trim(),sourceStore=$("#productSourceStoreInput").value.trim(),sourceUrl=$("#productSourceUrlInput").value.trim();
+ const sourcePrice=Number($("#productSourcePriceInput").value),rate=Number($("#productExchangeRateInput").value),sourceShipping=Number($("#productSourceShippingInput").value),otherCosts=Number($("#productOtherCostsInput").value),margin=Number($("#productMarginInput").value),price=calculateSalePrice(sourcePrice,rate,sourceShipping,otherCosts,margin),stock=Number($("#productStockInput").value),threshold=Number($("#productThresholdInput").value),mode=$("#productFulfillmentModeInput").value;
+ if(!name||!sourceStore||!/^https?:\/\//i.test(sourceUrl))return toast("Ajoute le nom du produit, le vendeur et le lien exact de la fiche en ligne.",true);
+ if(!$("#productSourceVerified").checked)return toast("Ouvre la source en ligne et confirme que tu as vérifié le prix aujourd’hui.",true);
+ if(price===null||!Number.isInteger(stock)||stock<0||!Number.isInteger(threshold)||threshold<0)return toast("Vérifie le prix fournisseur, la conversion, les frais et la marge.",true);
+ if(mode==="stocked"&&stock<1)return toast("Un produit en stock doit avoir une quantité disponible supérieure à zéro.",true);
+ setBusy(button,true,"Enregistrement…");
+ try{
+  const {error}=await state.supabase.from("products").insert({
+   organization_id:state.organization.id,site_id:siteId,sku:$("#productSkuInput").value.trim()||null,name,
+   category:$("#productCategoryInput").value.trim()||"Catalogue",description:$("#productDescriptionInput").value.trim(),
+   image_url:$("#productImageInput").value.trim()?safeEditorUrl($("#productImageInput").value,"image du produit"):null,
+   price,price_label:formatMoney(price,"XOF"),currency:"XOF",stock_quantity:stock,low_stock_threshold:threshold,
+   is_active:true,is_demo:false,source_store_name:sourceStore,source_url:sourceUrl,source_price:sourcePrice,
+   source_currency:$("#productSourceCurrencyInput").value,source_exchange_rate:rate,source_shipping_xof:sourceShipping,
+   other_costs_xof:otherCosts,margin_percent:margin,fulfillment_mode:mode,source_checked_at:new Date().toISOString()
+  });
+  if(error)throw error;
+  $("#productForm").reset();$("#productCategoryInput").value="Catalogue";$("#productStockInput").value="0";$("#productThresholdInput").value="5";$("#productMarginInput").value="30";$("#productExchangeRateInput").value="1";$("#productSourceShippingInput").value="0";$("#productOtherCostsInput").value="0";$("#productSourceCurrencyInput").value="XOF";$("#productFulfillmentModeInput").value="on_demand";refreshProductPricePreview();
+  toast("Produit enregistré avec un prix source vérifié et une marge calculée.");await reloadData();switchView("products");
+ }catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}
+}
 async function onCreateOrganization(event){event.preventDefault();const name=$("#organizationNameInput").value.trim(),slug=escapeSlug($("#organizationSlugInput").value||name),button=$('button[type="submit"]',$("#organizationForm"));setBusy(button,true,"Création…");try{const {error}=await state.supabase.rpc("create_organization",{p_name:name,p_slug:slug||null});if(error)throw error;toast("Espace entreprise créé.");await showWorkspace();}catch(e){toast(friendlyError(e),true);}finally{setBusy(button,false);}}
 function bindEvents(){
  const on=(selector,event,handler,root=document)=>{const element=$(selector,root);if(element)element.addEventListener(event,handler);}; on("#authForm","submit",onAuthSubmit);
