@@ -55,4 +55,8 @@ assert.ok(serviceQuotaMigration.includes("service_role")&&serviceQuotaMigration.
 const directoryMigration=readFileSync(join(root,"../supabase/migrations/202610270003_public_published_store_directory.sql"),"utf8");
 assert.ok(directoryMigration.includes("list_published_storefronts")&&directoryMigration.includes("status='published'"),"Public directory must list only published storefronts");
 for(const path of ["boutiques.html","boutiques.js"])assert.ok(existsSync(join(root,path)),"Missing public store directory asset: "+path);
+const publicDirectory=readFileSync(join(root,"boutiques.html"),"utf8");
+assert.ok(dashboardSource.includes('$$(".nav-item").forEach')&&dashboardSource.includes('const items=$$(".nav-item");'),"Dashboard menu and search must query a collection before using forEach.");
+assert.ok(dashboard.includes('name="robots" content="noindex,nofollow,noarchive"')&&dashboard.includes("Aperçu du catalogue client"),"Owner dashboard must be non-indexable and clearly separate from the customer catalog.");
+assert.ok(!publicHome.includes("sama-dashboard.html")&&!publicDirectory.includes("sama-dashboard.html"),"Customer pages must never link to owner administration.");
 console.log("SAMA Commerce validation passed: first-party storefronts, sourced prices and margins, online orders and delivery tracking.");
