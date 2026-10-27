@@ -196,21 +196,20 @@ Deno.serve(async (req: Request) => {
     .select("id,organization_id,name,slug,status,review_status,submitted_at,html_content,cloudflare_project_name,cloudflare_deployment_id,published_url,published_at")
     .eq("id", siteId).single();
   if (siteError || !site) return reply(404, { error: "Site introuvable ou accès refusé." });
-  const { data: membership } = await userDb.from("organization_memberships")
-    .select("role").eq("organization_id", site.organization_id).eq("user_id", authData.user.id).maybeSingle();
   const { data: platformAdmin, error: platformAdminError } = await userDb.from("site_management_admins")
     .select("user_id").eq("user_id", authData.user.id).maybeSingle();
   if (platformAdminError) return reply(403, { error: "Impossible de vérifier les droits de publication." });
   const isPlatformAdmin = Boolean(platformAdmin);
-  const isOrgAdmin = Boolean(membership && ["owner", "admin"].includes(membership.role));
-  if (!isOrgAdmin && !isPlatformAdmin) {
-    return reply(403, { error: "Seul le propriétaire, l’administrateur ou un gestionnaire SAMA Studio autorisé peut publier." });
+  if (!isPlatformAdmin) {
+    return reply(403, { error: "La publication est réservée au compte propriétaire de SAMA Commerce." });
   }
-  // Self-service publishing: owners/admins can publish without manual content review
-  // while their workspace is active and their trial/subscription remains valid.
+  // SAMA first-party stores may be published only by their platform-owner account.
   const { data: organization, error: organizationError } = await userDb.from("organizations")
-    .select("account_status,subscription_status,trial_ends_at").eq("id", site.organization_id).maybeSingle();
-  if (organizationError) return reply(500, { error: "Impossible de vérifier l’état de l’espace entreprise." });
+    .select("owner_id,account_status,subscription_status,trial_ends_at").eq("id", site.organization_id).maybeSingle();
+  if (organizationError) return reply(500, { error: "Impossible de vérifier l’état de l’espace propriétaire." });
+  if (!organization || organization.owner_id !== authData.user.id) {
+    return reply(403, { error: "Cette boutique n’appartient pas à l’espace propriétaire SAMA." });
+  }
   const trialValid = organization?.subscription_status === "trial"
     && Boolean(organization?.trial_ends_at)
     && new Date(organization.trial_ends_at).getTime() > Date.now();
