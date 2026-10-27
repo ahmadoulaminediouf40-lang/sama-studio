@@ -20,6 +20,18 @@ Deno.serve(async(req:Request)=>{
  for(const item of items){if(!item||typeof item!=="object")return reply(400,{error:"Article invalide."});const x=item as Record<string,unknown>,id=clean(x.product_id,40),quantity=Number(x.quantity);if(!/^[0-9a-f-]{36}$/i.test(id)||!Number.isInteger(quantity)||quantity<1||quantity>99)return reply(400,{error:"Un article ou une quantité est invalide."});const expected=Number(x.expected_unit_price);if(!Number.isFinite(expected)||expected<0)return reply(400,{error:"Prix de l’article invalide. Actualise la boutique."});sanitized.push({product_id:id,quantity,expected_unit_price:expected});}
  const ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||"unknown",ipHash=await fingerprint(ip);
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+ // Public orders are accepted only for SAMA first-party stores owned by an authorized platform administrator.
+ const {data:site,error:siteError}=await admin.from("sites").select("id,organization_id")
+   .eq("slug",slug).eq("status","published").maybeSingle();
+ if(siteError)return reply(500,{error:"Impossible de vérifier la boutique."});
+ if(!site)return reply(404,{error:"Cette boutique SAMA n’est pas disponible."});
+ const {data:org,error:orgError}=await admin.from("organizations").select("owner_id").eq("id",site.organization_id).maybeSingle();
+ if(orgError)return reply(500,{error:"Impossible de vérifier le propriétaire de la boutique."});
+ if(!org?.owner_id)return reply(404,{error:"Cette boutique n’appartient pas au catalogue SAMA."});
+ const {data:ownerAdmin,error:ownerAdminError}=await admin.from("site_management_admins").select("user_id")
+   .eq("user_id",org.owner_id).maybeSingle();
+ if(ownerAdminError)return reply(500,{error:"Impossible de vérifier l’autorisation de la boutique."});
+ if(!ownerAdmin)return reply(404,{error:"Cette boutique n’appartient pas au catalogue SAMA."});
  const {data,error}=await admin.rpc("create_storefront_order",{p_site_slug:slug,p_customer_name:name,p_customer_phone:phone,p_customer_address:address,p_notes:notes,p_items:sanitized,p_ip_hash:ipHash});
  if(error){const message=String(error.message||"Commande impossible.");const status=/Too many order attempts/i.test(message)?429:/not published|unavailable|Insufficient stock/i.test(message)?409:400;return reply(status,{error:message});}
  return reply(201,{accepted:true,order:data});
