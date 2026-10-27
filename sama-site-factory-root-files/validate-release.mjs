@@ -22,7 +22,7 @@ const publisher = readFileSync(join(root,"site-publisher.js"),"utf8");
 for (const marker of ["submitForReviewBottomBtn","previewWebsiteBtn","productSearch","categoryFilter","checkoutBtn","SAMA_STORE_DATA","sitePagesEditor","siteMediaGrid","siteRevisionList","restoreRevision","custom-content-section","safeImageUrl"]) assert.ok(publisher.includes(marker),"Missing storefront feature: "+marker);
 for (const marker of ["useCase:", "recommendedPages:", "managementModules:", "customerJourney:", "orderMode:"]) assert.ok(templates.includes(marker), "Missing contextual template metadata: " + marker);
 const dashboard = readFileSync(join(root,"sama-dashboard.js"),"utf8");
-for (const marker of ["function createMyBoutiques","SAMA Market","SAMA Mode","SAMA Immo","calculateSalePrice","update_storefront_order_fulfillment"]) assert.ok(dashboard.includes(marker), "Missing SAMA-owned store admin feature: " + marker);
+for (const marker of ["function createMyBoutiques","SAMA Market","SAMA Mode","SAMA Sport & Loisirs","calculateSalePrice","update_storefront_order_fulfillment"]) assert.ok(dashboard.includes(marker), "Missing SAMA-owned store admin feature: " + marker);
 const checkoutStart = publisher.indexOf("async function checkout()");
 const checkoutEnd = publisher.indexOf("function setBusinessContent()", checkoutStart);
 const checkout = publisher.slice(checkoutStart, checkoutEnd);
