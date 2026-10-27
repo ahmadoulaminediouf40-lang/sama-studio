@@ -559,6 +559,10 @@ function bindEvents(){
  on("#toggleAuthModeBtn","click",()=>setAuthMode(state.authMode==="signin"?"signup":"signin")); on("#signOutBtn","click",signOut);
  on("#organizationForm","submit",onCreateOrganization);
  on("#productForm","submit",onCreateProduct);
+ on("#prepareBoutiquesBtn","click",createMyBoutiques);
+ on("#searchSourceProductBtn","click",()=>{const name=$("#productNameInput")?.value.trim()||"";if(!name){toast("Renseigne d’abord le nom du produit à rechercher.",true);$("#productNameInput")?.focus();return;}const url="https://www.google.com/search?tbm=shop&q="+encodeURIComponent(name+" prix Sénégal achat en ligne");const opened=window.open(url,"_blank","noopener,noreferrer");if(!opened)toast("Autorise l’ouverture du nouvel onglet pour comparer les prix fournisseurs.",true);});
+ ["productSourcePriceInput","productExchangeRateInput","productSourceShippingInput","productOtherCostsInput","productMarginInput"].forEach(id=>{const el=$("#"+id);if(el){el.addEventListener("input",refreshProductPricePreview);el.addEventListener("change",refreshProductPricePreview);}});
+ on("#productSourceCurrencyInput","change",()=>{if($("#productSourceCurrencyInput").value==="XOF")$("#productExchangeRateInput").value="1";refreshProductPricePreview();});
  on("#siteEditorSiteSelect","change",async()=>{const id=$("#siteEditorSiteSelect")?.value;if(id){try{await loadSiteEditor(id);}catch(e){toast(friendlyError(e),true);}}});
  on("#siteEditorForm","submit",handleSiteEditorSubmit);
  on("#saveAndPublishSiteBtn","click",saveAndPublishEditedSite);
