@@ -125,3 +125,15 @@
 .order-product-line small{font-size:10px;color:#76867a}
 .product-edit-input.product-name{font-weight:800}
 @media(max-width:720px){.fulfillment-grid{grid-template-columns:minmax(0,1fr);min-width:280px}.fulfillment-grid>.btn{width:100%}.data-table td .product-edit-input{min-width:105px}.price-verified-control{padding:11px!important}}
+
+
+/* External logistics onboarding links */
+.logistics-partners-panel .panel-description{max-width:980px}
+.logistics-partner-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.logistics-partner-card{display:flex;flex-direction:column;align-items:flex-start;min-height:170px;padding:17px;border:1px solid #dfe8df;border-radius:13px;background:linear-gradient(145deg,#fff,#f8fbf6);text-decoration:none;transition:transform .16s,border-color .16s,box-shadow .16s}
+.logistics-partner-card:hover{transform:translateY(-2px);border-color:#a8c9ac;box-shadow:0 9px 22px #1a44200c}
+.logistics-partner-card strong{font-size:14px;color:#203d2a;margin-top:11px}
+.logistics-partner-card p{color:#697b6d;font-size:11px;line-height:1.65;margin:7px 0 14px}
+.logistics-partner-card>span:last-child{font-size:10px;font-weight:850;color:#21613b;margin-top:auto}
+.partner-pill{padding:5px 8px;border-radius:99px;background:#edf5e9;color:#497249;font-size:8px;font-weight:900;letter-spacing:.03em}
+@media(max-width:720px){.logistics-partner-grid{grid-template-columns:minmax(0,1fr)}.logistics-partner-card{min-height:0}}
