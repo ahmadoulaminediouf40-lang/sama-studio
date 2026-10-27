@@ -402,8 +402,30 @@ function renderProducts(){
    catch(e){toast(friendlyError(e),true);}finally{setBusy(save,false);}
   });
   const remove=node("button","delete-button","Supprimer");remove.type="button";remove.addEventListener("click",async()=>{if(!confirm("Supprimer le produit « "+p.name+" » ? Il restera impossible de le supprimer s’il est associé à une commande."))return;try{const {error}=await state.supabase.from("products").delete().eq("id",p.id).eq("organization_id",state.organization.id);if(error)throw error;toast("Produit supprimé.");await reloadData();}catch(e){toast(friendlyError(e),true);}});
-  append(actions,save,remove);
-  [row].forEach(()=>{});
+  const historyDetails=node("details","price-history-details"),historySummary=node("summary","","Historique des prix vérifiés"),historyList=node("div","price-history-list");
+  historyDetails.append(historySummary,historyList);
+  historyDetails.addEventListener("toggle",async()=>{
+   if(!historyDetails.open||historyDetails.dataset.loaded==="true")return;
+   historyDetails.dataset.loaded="true";historyList.replaceChildren(node("small","muted-small","Chargement de l’historique…"));
+   try{
+    const {data,error}=await state.supabase.from("product_price_history")
+      .select("source_store_name,source_url,source_price,source_currency,source_exchange_rate,source_shipping_xof,other_costs_xof,margin_percent,selling_price_xof,checked_at")
+      .eq("product_id",p.id).eq("organization_id",state.organization.id).eq("site_id",p.site_id)
+      .order("checked_at",{ascending:false}).limit(10);
+    if(error)throw error;
+    historyList.replaceChildren();
+    if(!data?.length){historyList.appendChild(node("small","muted-small","Aucune vérification archivée pour le moment."));return;}
+    data.forEach(entry=>{
+     const item=node("div","price-history-item"),title=node("strong","",formatMoney(entry.source_price,entry.source_currency||"XOF")+" · vente "+formatMoney(entry.selling_price_xof,"XOF"));
+     const costs=Number(entry.source_price||0)*Number(entry.source_exchange_rate||1)+Number(entry.source_shipping_xof||0)+Number(entry.other_costs_xof||0);
+     const detail=node("small","",String(entry.source_store_name||"Vendeur")+" · coût estimé "+formatMoney(costs,"XOF")+" · majoration "+String(entry.margin_percent||0)+" % · vérifié le "+formatDate(entry.checked_at));
+     item.append(title,detail);
+     if(entry.source_url&&/^https?:\/\//i.test(entry.source_url)){const link=node("a","source-reference-link","Ouvrir la source ↗");link.href=entry.source_url;link.target="_blank";link.rel="noopener noreferrer";item.appendChild(link);}
+     historyList.appendChild(item);
+    });
+   }catch(error){historyDetails.dataset.loaded="false";historyList.replaceChildren(node("small","muted-small",friendlyError(error)));}
+  });
+  append(actions,historyDetails,save,remove);
   tbody.appendChild(row);
   append(row,productCell,sourceCell,costCell,marginCell,modeCell,stateCell,actions);
  });
