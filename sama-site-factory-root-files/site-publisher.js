@@ -634,7 +634,7 @@
       var customerAddress = String(byId("customerAddress").value || "").trim();
       var notes = String(byId("customerNotes").value || "").trim();
       if (!customerName) return announce("Renseigne ton nom avant de commander.");
-      if (customerPhone.replace(/\\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
+      if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
       if (entries.some(function (entry) { return !entry.price || !Number.isFinite(entry.price); })) return announce("Un prix doit être confirmé. Actualise la boutique ou contacte-nous.");
       var config = window.SAMA_STOREFRONT_CONFIG;
       var button = byId("checkoutBtn");
@@ -642,7 +642,7 @@
       if (config && config.apiUrl && config.publishableKey && config.siteSlug) {
         if (button) { button.disabled = true; button.textContent = "Enregistrement…"; }
         try {
-          var response = await fetch(String(config.apiUrl).replace(/\\/$/, "") + "/functions/v1/create-storefront-order", {
+          var response = await fetch(String(config.apiUrl).replace(/\/$/, "") + "/functions/v1/create-storefront-order", {
             method: "POST",
             headers: { "Content-Type": "application/json", "apikey": config.publishableKey },
             body: JSON.stringify({
