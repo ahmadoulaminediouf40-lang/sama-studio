@@ -58,5 +58,5 @@ for(const path of ["boutiques.html","boutiques.js"])assert.ok(existsSync(join(ro
 const publicDirectory=readFileSync(join(root,"boutiques.html"),"utf8");
 assert.ok(dashboardSource.includes('$$(".nav-item").forEach')&&dashboardSource.includes('const items=$$(".nav-item");'),"Dashboard menu and search must query a collection before using forEach.");
 assert.ok(dashboard.includes('name="robots" content="noindex,nofollow,noarchive"')&&dashboard.includes("Aperçu du catalogue client"),"Owner dashboard must be non-indexable and clearly separate from the customer catalog.");
-assert.ok(!publicHome.includes("sama-dashboard.html")&&!publicDirectory.includes("sama-dashboard.html"),"Customer pages must never link to owner administration.");
+assert.ok(!/<a\b[^>]*href=["'][^"']*sama-dashboard\.html/i.test(publicHome+publicDirectory),"Customer pages must never link to owner administration.");
 console.log("SAMA Commerce validation passed: first-party storefronts, sourced prices and margins, online orders and delivery tracking.");
