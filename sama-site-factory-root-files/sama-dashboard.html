@@ -108,8 +108,8 @@
 <label>Taux de conversion en XOF<input id="productExchangeRateInput" type="number" required min="0.0001" step="0.0001" value="1"></label>
 <label>Livraison fournisseur (XOF)<input id="productSourceShippingInput" type="number" min="0" step="1" value="0" required></label>
 <label>Autres frais / taxes (XOF)<input id="productOtherCostsInput" type="number" min="0" step="1" value="0" required></label>
-<label>Marge cible (%)<input id="productMarginInput" type="number" min="0" max="500" step="1" value="30" required></label>
-<label>Prix de vente calculé (XOF)<input id="productPriceInput" type="number" readonly value="0"><small id="productPricePreviewText" class="muted-small">Coût fournisseur converti + frais, puis marge cible. Arrondi au prochain 100 F.</small></label>
+<label>Majoration cible (%)<input id="productMarginInput" type="number" min="0" max="500" step="1" value="30" required></label>
+<label>Prix de vente calculé (XOF)<input id="productPriceInput" type="number" readonly value="0"><small id="productPricePreviewText" class="muted-small">Coût fournisseur converti + frais, puis majoration cible. Prix arrondi au prochain 100 F.</small></label>
 <label>Mode d’approvisionnement<select id="productFulfillmentModeInput"><option value="on_demand">À la commande — j’achète après la demande</option><option value="supplier_direct">Le fournisseur livre directement le client</option><option value="stocked">Stock déjà disponible chez moi</option></select></label>
 <label>Stock (uniquement si déjà en stock)<input id="productStockInput" type="number" min="0" step="1" value="0" required></label>
 <label>Seuil de stock faible<input id="productThresholdInput" type="number" min="0" step="1" value="5" required></label>
