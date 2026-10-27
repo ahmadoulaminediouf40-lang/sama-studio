@@ -433,6 +433,14 @@ function renderOrders(){
   const site=state.sites.find(s=>s.id===o.site_id);
   append(orderCell,node("strong","","#"+o.order_number),node("small","",site?.name||"Boutique"),node("small","",formatDate(o.created_at)));
   append(customer,node("strong","",o.customer_name||"Client"),node("small","",o.customer_phone||""),node("small","",o.customer_address||"Adresse à confirmer"),node("small","",o.notes||""));
+  const contactDigits=String(o.customer_phone||"").replace(/\D/g,"");
+  const contactPhone=contactDigits.length===9?"221"+contactDigits:contactDigits.startsWith("00")?contactDigits.slice(2):contactDigits;
+  if(contactPhone.length>=8){
+   const contactMessage="Bonjour "+String(o.customer_name||"")+" ! Nous avons reçu votre commande n°"+o.order_number+" sur "+String(site?.name||"SAMA")+". Le montant des articles est de "+formatMoney(o.total,o.currency||"XOF")+". Nous vérifions la disponibilité chez le fournisseur. Avant l’achat, nous vous confirmerons le prix final, les frais et le délai de livraison. Pouvez-vous confirmer votre adresse et rester joignable ?";
+   const contact=node("a","btn btn-outline order-contact-link","Confirmer avec le client ↗");
+   contact.href="https://wa.me/"+contactPhone+"?text="+encodeURIComponent(contactMessage);contact.target="_blank";contact.rel="noopener noreferrer";
+   customer.appendChild(contact);
+  }
   const lines=o.order_items||[];
   lines.forEach(item=>{
     const line=node("div","order-product-line");
@@ -474,7 +482,7 @@ function renderOrders(){
     labeledControl("Livraison estimée",controls.eta),
     labeledControl("Frais livraison facturés au client (XOF)",controls.deliveryFee),
     labeledControl("Coût livraison estimé (XOF)",controls.deliveryCost),
-    labeledControl("Coût d’achat réel (XOF)",controls.purchaseActual),
+    labeledControl("Coût réel total fournisseur (achat + frais) en XOF",controls.purchaseActual),
     labeledControl("Livraison réellement payée (XOF)",controls.deliveryActual)
   );
   const save=node("button","btn btn-primary","Enregistrer le suivi");save.type="button";save.addEventListener("click",()=>saveOrderFulfillment(o,controls,save));form.appendChild(save);details.appendChild(form);fulfillmentCell.appendChild(details);
