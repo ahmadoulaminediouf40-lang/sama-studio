@@ -11,8 +11,8 @@ const templates={
  grocery:{name:"SAMA Épicerie",sector:"Épicerie & produits locaux",description:"Produits alimentaires et essentiels du quotidien.",icon:"✺",color:"#e5f0de",ink:"#4c7835"},
  restaurant:{name:"SAMA Food",sector:"Restauration & repas",description:"Repas, menus et offres de restauration selon disponibilité.",icon:"♨",color:"#f7e4d9",ink:"#ab5737"},
  bakery:{name:"SAMA Délices",sector:"Boulangerie & traiteur",description:"Pains, pâtisseries, plateaux et commandes traiteur.",icon:"❋",color:"#f4ead6",ink:"#93692a"},
- services:{name:"SAMA Services",sector:"Services",description:"Prestations et demandes de devis selon le service.",icon:"✧",color:"#e2f0e9",ink:"#34735b"},
- realestate:{name:"SAMA Immo",sector:"Immobilier",description:"Annonces et prises de contact pour biens immobiliers.",icon:"⌂",color:"#e6e9ef",ink:"#53627d"}
+ services:{name:"SAMA Auto & Moto",sector:"Auto & moto",description:"Pièces auto, accessoires moto et équipements de mobilité sourcés en ligne.",icon:"⌘",color:"#e2eaf8",ink:"#365ea5"},
+ realestate:{name:"SAMA Sport & Loisirs",sector:"Sport & loisirs",description:"Équipements de fitness, sport, randonnée et loisirs référencés auprès de vendeurs en ligne.",icon:"✦",color:"#e5f1da",ink:"#2b6a3c"}
 };
 const grid=document.getElementById("storeGrid");
 document.getElementById("year").textContent=String(new Date().getFullYear());
