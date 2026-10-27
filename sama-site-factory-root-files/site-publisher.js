@@ -544,6 +544,7 @@
     }
     function persistCart() { try { localStorage.setItem(key, JSON.stringify(cart)); } catch (error) { /* Panier conservé en mémoire. */ } }
     function productStock(product) {
+      if (product && ["on_demand", "supplier_direct"].indexOf(product.fulfillment_mode) !== -1) return 99;
       var value = product && (product.stock_quantity !== undefined ? product.stock_quantity : product.stockQuantity);
       return Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : 0;
     }
@@ -628,34 +629,71 @@
         return { id: id, product: product, quantity: quantity, price: cartPriceValue(product) };
       }).filter(Boolean);
       if (!entries.length) return announce("Ton panier est vide.");
-      var whatsapp = normalizedPhone(D.business.whatsapp || D.business.phone);
-      if (!whatsapp) return announce("Le vendeur n’a pas renseigné de numéro WhatsApp. Contacte-le par les coordonnées affichées sur le site.");
       var customerName = String(byId("customerName").value || "").trim();
       var customerPhone = String(byId("customerPhone").value || "").trim();
       var customerAddress = String(byId("customerAddress").value || "").trim();
       var notes = String(byId("customerNotes").value || "").trim();
-      if (!customerName) return announce("Renseigne ton nom avant d’envoyer la commande.");
-      if (customerPhone.replace(/\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
-      var message = "Bonjour " + String(D.business.name || "") + ", je souhaite passer cette commande :\n\n";
-      var total = 0, totalKnown = true;
+      if (!customerName) return announce("Renseigne ton nom avant de commander.");
+      if (customerPhone.replace(/\\D/g, "").length < 8) return announce("Renseigne un numéro de téléphone valide.");
+      if (entries.some(function (entry) { return !entry.price || !Number.isFinite(entry.price); })) return announce("Un prix doit être confirmé. Actualise la boutique ou contacte-nous.");
+      var config = window.SAMA_STOREFRONT_CONFIG;
+      var button = byId("checkoutBtn");
+      var oldLabel = button ? button.textContent : "";
+      if (config && config.apiUrl && config.publishableKey && config.siteSlug) {
+        if (button) { button.disabled = true; button.textContent = "Enregistrement…"; }
+        try {
+          var response = await fetch(String(config.apiUrl).replace(/\\/$/, "") + "/functions/v1/create-storefront-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": config.publishableKey },
+            body: JSON.stringify({
+              site_slug: config.siteSlug,
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              customer_address: customerAddress,
+              notes: notes,
+              website: "",
+              items: entries.map(function (entry) {
+                return { product_id: entry.product.id, quantity: entry.quantity, expected_unit_price: entry.price };
+              })
+            })
+          });
+          var result = {};
+          try { result = await response.json(); } catch (_) { result = {}; }
+          if (!response.ok || !result.accepted || !result.order) {
+            throw new Error(result.error || "La commande n’a pas pu être enregistrée. Actualise la page et réessaie.");
+          }
+          var orderNumber = result.order.order_number || result.order.orderNumber || result.order.order_id || "";
+          cart = {};
+          persistCart();
+          renderCart();
+          renderProducts();
+          closeCart();
+          announce("Commande n°" + orderNumber + " enregistrée. Nous allons confirmer la disponibilité, le prix fournisseur et la livraison avant validation définitive.");
+          return;
+        } catch (error) {
+          announce(error && error.message ? error.message : "Erreur lors de l’enregistrement. Réessaie.");
+          return;
+        } finally {
+          if (button) { button.disabled = false; button.textContent = oldLabel; }
+        }
+      }
+      // Le mode aperçu n'a pas d'API de commande : on conserve un parcours WhatsApp de démonstration.
+      var whatsapp = normalizedPhone(D.business.whatsapp || D.business.phone);
+      if (!whatsapp) return announce("Cette prévisualisation n’a pas de numéro WhatsApp configuré.");
+      var message = "Bonjour " + String(D.business.name || "") + ", je souhaite tester cette commande :\\n\\n";
+      var total = 0;
       entries.forEach(function (entry, index) {
-        var line = (index + 1) + ". " + String(entry.product.name || entry.product.title || "Produit") + " × " + entry.quantity;
-        if (entry.price !== null) { var subtotal = entry.price * entry.quantity; total += subtotal; line += " — " + cartMoney(subtotal); }
-        else totalKnown = false;
-        message += line + "\n";
+        var subtotal = entry.price * entry.quantity;
+        total += subtotal;
+        message += (index + 1) + ". " + String(entry.product.name || "Produit") + " × " + entry.quantity + " — " + cartMoney(subtotal) + "\\n";
       });
-      if (totalKnown) message += "\nTotal estimé : " + cartMoney(total) + "\n";
-      message += "\nNom : " + customerName + "\nTéléphone du client : " + customerPhone;
-      if (customerAddress) message += "\nAdresse / livraison : " + customerAddress;
-      if (notes) message += "\nPrécisions : " + notes;
-      message += "\n\nCommande envoyée depuis le site " + String(window.location.hostname || "du vendeur") + ". Merci de confirmer la disponibilité et la livraison.";
-      var url = "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(message);
-      var opened = window.open(url, "_blank", "noopener,noreferrer");
-      if (!opened) window.location.href = url;
-      cart = {};
-      renderCart();
-      closeCart();
-      announce("Ta commande est prête dans WhatsApp. Envoie le message pour la transmettre au vendeur.");
+      message += "\\nTotal estimé : " + cartMoney(total) + "\\nNom : " + customerName + "\\nTéléphone : " + customerPhone;
+      if (customerAddress) message += "\\nAdresse / quartier : " + customerAddress;
+      if (notes) message += "\\nPrécisions : " + notes;
+      var previewUrl = "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(message);
+      var opened = window.open(previewUrl, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.href = previewUrl;
+      announce("Aperçu de commande ouvert dans WhatsApp. Les commandes réelles seront enregistrées dans la boutique.");
     }
         function setBusinessContent() {
       var logo = byId("siteLogo");
@@ -755,7 +793,7 @@
     var customNav = customPages.map(function (page, index) { return '<a href="?page=' + encodeURIComponent(safePageSlug(page.slug || page.title || ("page-" + index))) + '" data-custom-page-link>' + escapeHtml(page.title) + '</a>'; }).join("");
     page.push('<nav class="main-nav" aria-label="Navigation principale"><a href="#catalog">Catalogue</a><a href="#about">À propos</a>' + customNav + '<a href="#contact">Contact</a></nav><div class="header-actions"><button id="openCart" class="btn btn-primary" type="button">Panier <span id="cartCount" class="cart-count">0</span></button></div></div></header><main id="top">');
     page.push('<section class="hero"><div class="wrap hero-grid"><div><span class="eyebrow" id="siteEyebrow">' + escapeHtml(data.template.eyebrow || data.template.sector) + '</span><h1 id="siteHeroTitle">' + escapeHtml(data.business.headline || "Bienvenue") + '</h1><p id="siteHeroDescription">' + escapeHtml(data.business.description || "Découvrez notre sélection et contactez-nous pour toute information.") + '</p><div class="hero-actions"><button class="btn btn-primary" id="heroCatalogBtn" type="button">Découvrir le catalogue <span aria-hidden="true">→</span></button><button class="btn btn-quiet" id="openCartHero" type="button">Ouvrir le panier</button><a class="btn btn-quiet" id="heroWhatsApp" data-whatsapp-link href="#contact">Commander par WhatsApp</a></div></div><div class="hero-image-wrap"><img id="heroImage" class="hero-image" src="' + escapeHtml(safeImageUrl(data.template.heroImage)) + '" alt="' + escapeHtml(data.template.sector || data.business.name) + '"><div class="hero-float">' + escapeHtml(data.business.name) + ' · ' + escapeHtml(data.business.city || "Sénégal") + '</div></div></div></section>');
-    page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Informations et prix visibles</div><div class="trust-item"><span class="trust-icon">↗</span> Commande simple via WhatsApp</div><div class="trust-item"><span class="trust-icon">◎</span> Contact direct avec le vendeur</div></div></section>');
+    page.push('<section class="trust-strip"><div class="wrap trust-inner"><div class="trust-item"><span class="trust-icon">✓</span> Prix référencés auprès de vendeurs en ligne</div><div class="trust-item"><span class="trust-icon">↗</span> Commande enregistrée en ligne</div><div class="trust-item"><span class="trust-icon">◎</span> Livraison organisée à domicile</div></div></section>');
     page.push('<section class="section" id="catalog"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">La sélection</span><h2>Nos produits</h2></div><p>Choisis tes articles et ajoute-les au panier. La disponibilité et les conditions sont confirmées avant validation.</p></div><div class="shop-tools"><label class="sr-only" for="productSearch">Rechercher un produit</label><input id="productSearch" class="shop-input" type="search" placeholder="Rechercher un produit…"><label class="sr-only" for="categoryFilter">Catégorie</label><select id="categoryFilter" class="shop-select"><option value="">Toutes les catégories</option></select><span class="product-count" id="productCount"></span></div><div class="product-grid" id="productGrid"></div><p class="empty-products" id="noProducts" hidden>Aucun produit ne correspond à cette recherche.</p></div></section>');
     page.push('<section class="section" id="about"><div class="wrap about-panel"><div><span class="eyebrow">Notre entreprise</span><h2 id="aboutTitle">À propos</h2><p id="aboutDescription">' + escapeHtml(data.business.description || "") + '</p></div><div class="feature-list" id="featureList"></div></div></section>');
     customPages.forEach(function (customPage, index) {
@@ -764,13 +802,14 @@
       page.push('<section class="section custom-content-section" id="' + escapeHtml(customId) + '" aria-label="' + escapeHtml(customPage.title) + '" data-page-description="' + escapeHtml(customPage.description || "") + '"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Informations</span><h2>' + escapeHtml(customPage.title) + '</h2></div><p>' + escapeHtml(customPage.description || "") + '</p></div><div class="custom-page-body">' + body + '</div></div></section>');
     });
     page.push('<section class="section contact-section" id="contact"><div class="wrap"><div class="section-heading"><div><span class="eyebrow">Restons en contact</span><h2>Une question ou une commande ?</h2></div><p>Contacte directement l’équipe pour confirmer les disponibilités et les modalités de livraison.</p></div><div class="contact-grid"><div class="contact-card"><small>Téléphone</small><a data-phone-link href="#contact">Non renseigné</a></div><div class="contact-card"><small>WhatsApp</small><a data-whatsapp-link href="#contact">Écrire au vendeur</a></div><div class="contact-card"><small>E-mail</small><a data-email-link href="#contact">Non renseigné</a></div></div><div class="contact-grid" style="margin-top:15px"><div class="contact-card"><small>Adresse</small><strong id="siteAddress">Adresse sur demande</strong></div><div class="contact-card"><small>Disponibilité</small><strong id="siteHours">Contactez-nous.</strong></div><div class="contact-card"><small>Livraison et retrait</small><strong id="siteDelivery">Modalités à confirmer.</strong></div></div><div class="social-links" id="socialLinks"></div></div></section></main>');
-    page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Les prix, la disponibilité et les modalités de livraison sont confirmés par le vendeur. Site vitrine avec commande via WhatsApp.</div></div></footer>');
+    page.push('<footer class="site-footer"><div class="wrap footer-inner"><div>© <span id="siteYear"></span> <strong id="siteFooterName">' + escapeHtml(data.business.name) + '</strong> <span id="siteFooterCity">' + escapeHtml(data.business.city || "") + '</span></div><div class="footer-note">Commande enregistrée en ligne. La disponibilité fournisseur, le prix final et les modalités de livraison sont confirmés avant validation définitive.</div></div></footer>');
     page.push('<div id="cartBackdrop" class="backdrop" aria-hidden="true"></div><aside class="cart-drawer" id="cartDrawer" aria-label="Panier" aria-hidden="true"><div class="drawer-head"><h2>Ton panier</h2><button id="closeCart" class="icon-button" type="button" aria-label="Fermer le panier">×</button></div><div id="cartLines" class="cart-lines"></div><div class="cart-total"><div class="cart-subtotal-row"><span>Sous-total indicatif</span><strong id="cartSubtotal">0 F CFA</strong></div><small id="cartTotalsNote" class="cart-totals-note">Le vendeur confirmera le montant final.</small><small id="cartSummary">Ajoute des produits avant de poursuivre.</small><div class="checkout-details"><label for="customerName">Ton nom <input id="customerName" maxlength="140" autocomplete="name" placeholder="Nom complet"></label><label for="customerPhone">Téléphone <input id="customerPhone" maxlength="40" autocomplete="tel" type="tel" placeholder="+221 77 000 00 00"></label><label for="customerAddress">Adresse ou quartier <input id="customerAddress" maxlength="500" autocomplete="street-address" placeholder="Facultatif"></label><label for="customerNotes">Note pour le vendeur <input id="customerNotes" maxlength="1000" placeholder="Livraison, variantes…"></label></div><button id="checkoutBtn" class="btn btn-primary full-width" type="button">Envoyer la commande</button><button id="clearCartBtn" class="btn btn-quiet full-width" style="margin-top:8px" type="button">Vider le panier</button></div></aside><div id="siteToast" class="toast" role="status" aria-live="polite"></div>');
     page.push('<script>window.SAMA_STORE_DATA=' + json + ';(' + clientRuntime.toString() + ')();</script>' +
       '<script>(function(){function showPage(){var params=new URLSearchParams(location.search),slug=params.get("page"),main=document.querySelector("main"),sections=Array.from(document.querySelectorAll(".custom-content-section")),clean=String(slug||"").toLowerCase().replace(/[^a-z0-9-]/g,""),chosen=sections.find(function(section){return section.id==="custom-"+clean});if(!slug||!chosen){sections.forEach(function(section){section.hidden=false});Array.from(main.children).forEach(function(node){node.hidden=false});var old=document.getElementById("pageHomeLink");if(old)old.remove();return}Array.from(main.children).forEach(function(node){node.hidden=node!==chosen});sections.forEach(function(section){section.hidden=section!==chosen});var old=document.getElementById("pageHomeLink");if(old)old.remove();var nav=document.querySelector(".main-nav"),home=document.createElement("a");home.id="pageHomeLink";home.href=location.pathname;home.textContent="Accueil";if(nav)nav.insertBefore(home,nav.firstChild);var h=chosen.querySelector("h2"),brand=document.getElementById("siteBusinessName");document.title=(h?h.textContent:"Page")+" | "+(brand?brand.textContent:"");window.scrollTo(0,0)}window.addEventListener("popstate",showPage);document.addEventListener("click",function(event){var link=event.target.closest("a[data-custom-page-link]");if(!link)return;event.preventDefault();history.pushState({},"",link.getAttribute("href"));showPage()});showPage()})();</script>' +
       '</body></html>');
     return page.join("\n");
   }
+  window.SAMA_STOREFRONT_RENDERER = { buildClientHtml: buildClientHtml };
   function validateForExport(data, requireChecklist) {
     var confirmation = document.getElementById("releaseChecklistConfirmed");
     if (requireChecklist && (!confirmation || !confirmation.checked)) {
@@ -891,6 +930,7 @@
     } catch (error) { /* Brouillon illisible : garder les valeurs du modèle. */ }
   }
   function bind() {
+    if (!$("#projectForm") || !$("#storePreview")) return;
     addExtraFields(); addReleasePanel();
     renderPagesEditor(); renderMediaLibrary(); renderRevisionHistory();
     var template = activeTemplate();
