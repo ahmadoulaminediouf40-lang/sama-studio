@@ -47,11 +47,11 @@ async function showWorkspace(){
    state.organization=null;state.role=null;state.sites=[];state.products=[];state.orders=[];state.managementRequests=[];state.orgUsage=null;
    $(".organization-switcher").classList.toggle("hidden",state.isSamaAdmin);$(".org-select-label").classList.toggle("hidden",state.isSamaAdmin);$("#organizationSelect").classList.toggle("hidden",state.isSamaAdmin);
    $$(".nav-item").forEach(button=>{button.hidden=state.isSamaAdmin?!["review","support"].includes(button.dataset.view):button.dataset.view==="review"||button.dataset.view==="support";});
-   if(state.isSamaAdmin){showOnly("dashboardPanel");switchView("review");await Promise.all([reloadReviewQueue(),reloadSupportRequests()]);return;}
+   if(state.isSamaAdmin){showOnly("dashboardPanel");toast("Aucun espace propriétaire SAMA n’est associé à ce compte.",true);return;}
    showOnly("organizationOnboarding");return;
   }
   $(".organization-switcher").classList.remove("hidden");$(".org-select-label").classList.remove("hidden");$("#organizationSelect").classList.remove("hidden");
-  $$(".nav-item").forEach(button=>{if(button.dataset.view==="support"||button.dataset.view==="review")button.hidden=!state.isSamaAdmin;else button.hidden=false;});
+  $(".nav-item").forEach(button=>{if(button.dataset.view==="support"||button.dataset.view==="review")button.hidden=true;else button.hidden=false;});
   const saved=localStorage.getItem("sama_studio_active_org_v1");
   state.organization=state.organizations.find(o=>o.id===saved)||state.organizations[0];
   localStorage.setItem("sama_studio_active_org_v1",state.organization.id);
@@ -69,7 +69,7 @@ async function showWorkspace(){
   if(state.isSamaAdmin&&state.organization?.owner_id===state.user?.id&&state.role==="owner"&&ownedStores<firstPartySlugs.length){
     await createMyBoutiques();
   }
-  if(state.isSamaAdmin)await Promise.all([reloadReviewQueue(),reloadSupportRequests()]);
+  // SAMA Commerce does not use the customer-site approval queue.
  }catch(e){showOnly("dashboardPanel");toast(friendlyError(e),true);}
 }
 function formatBytes(value){const bytes=Math.max(0,Number(value)||0);if(bytes<1000)return bytes+" o";if(bytes<1000000)return (bytes/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})+" Ko";return (bytes/1000000).toLocaleString("fr-FR",{maximumFractionDigits:2})+" Mo";}
