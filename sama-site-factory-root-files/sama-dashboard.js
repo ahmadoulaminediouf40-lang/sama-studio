@@ -57,6 +57,11 @@ async function showWorkspace(){
   $("#settingsRole").textContent=({owner:"Propriétaire",admin:"Administrateur",staff:"Équipe",viewer:"Lecture seule"})[state.role]||state.role;
   $("#settingsUserEmail").textContent=state.user.email||"—";
   await reloadData();
+  const firstPartySlugs=["sama-market","sama-mode","sama-beaute","sama-tech","sama-maison","sama-epicerie","sama-food","sama-delices","sama-services","sama-immo"];
+  const ownedStores=state.sites.filter(site=>firstPartySlugs.includes(site.slug)).length;
+  if(state.isSamaAdmin&&state.organization?.owner_id===state.user?.id&&state.role==="owner"&&ownedStores<firstPartySlugs.length){
+    await createMyBoutiques();
+  }
   if(state.isSamaAdmin)await Promise.all([reloadReviewQueue(),reloadSupportRequests()]);
  }catch(e){showOnly("dashboardPanel");toast(friendlyError(e),true);}
 }
