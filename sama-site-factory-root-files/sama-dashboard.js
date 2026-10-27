@@ -370,7 +370,7 @@ function renderProducts(){
   const costHint=node("small","muted-small","");
   const calc=()=>{const sale=calculateSalePrice(srcPrice.value,exchange.value,sourceShip.value,otherCosts.value,margin.value);sellPrice.value=sale===null?"":String(sale);const cost=Number(srcPrice.value)*Number(exchange.value)+Number(sourceShip.value)+Number(otherCosts.value);costHint.textContent=Number.isFinite(cost)&&cost>0?"Coût estimé : "+formatMoney(cost,"XOF")+" · vente : "+(sale===null?"à vérifier":formatMoney(sale,"XOF")):"Renseigne le coût fournisseur";};
   [srcPrice,exchange,sourceShip,otherCosts,margin].forEach(el=>el.addEventListener("input",calc));srcCurrency.addEventListener("change",()=>{if(srcCurrency.value==="XOF")exchange.value="1";calc();});calc();
-  append(marginCell,labeledControl("Marge cible (%)",margin),labeledControl("Prix client (XOF)",sellPrice),costHint);
+  append(marginCell,labeledControl("Majoration cible (%)",margin),labeledControl("Prix client (XOF)",sellPrice),costHint);
   const fulfillment=node("select","product-edit-input");
   [["on_demand","À la commande"],["supplier_direct","Livraison directe fournisseur"],["stocked","Stock déjà disponible"]].forEach(([v,label])=>{const o=node("option","",label);o.value=v;o.selected=v===(p.fulfillment_mode||"on_demand");fulfillment.appendChild(o);});
   const stock=node("input","product-edit-input small-number");stock.type="number";stock.min="0";stock.step="1";stock.value=String(p.stock_quantity??0);stock.setAttribute("aria-label","Stock actuel");
