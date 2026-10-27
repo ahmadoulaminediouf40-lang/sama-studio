@@ -1,12 +1,13 @@
 begin;
 create or replace function public.enforce_saas_site_quota()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $function$
-declare v_max_sites integer;v_max_html integer;v_max_total bigint;v_count bigint;v_total bigint;v_bytes bigint;
+declare v_max_sites integer;v_max_html integer;v_max_total bigint;v_count bigint;v_total bigint;v_bytes bigint;v_role text;
 begin
-  -- The authenticated SAMA platform owner manages first-party storefronts, not customer SaaS workspaces.
-  if auth.uid() is not null and exists(select 1 from public.site_management_admins a where a.user_id=auth.uid()) then
-    return NEW;
-  end if;
+  v_role:=coalesce(auth.role(),current_setting('request.jwt.claim.role',true),'');
+  if (auth.uid() is not null and exists(select 1 from public.site_management_admins a where a.user_id=auth.uid()))
+     or (v_role='service_role' and exists(
+       select 1 from public.organizations o join public.site_management_admins a on a.user_id=o.owner_id where o.id=NEW.organization_id
+     )) then return NEW; end if;
   select p.max_sites,p.max_site_html_bytes,p.max_total_site_html_bytes into v_max_sites,v_max_html,v_max_total
   from public.organizations o join public.saas_plans p on p.plan_code=o.subscription_plan where o.id=NEW.organization_id;
   if v_max_sites is null then raise exception 'Abonnement introuvable pour cette entreprise.'; end if;
@@ -21,12 +22,13 @@ end; $function$;
 
 create or replace function public.enforce_saas_product_quota()
 returns trigger language plpgsql security definer set search_path=public,pg_temp as $function$
-declare v_max_products integer;v_count bigint;
+declare v_max_products integer;v_count bigint;v_role text;
 begin
-  -- Same exception for first-party SAMA storefronts managed by the platform admin.
-  if auth.uid() is not null and exists(select 1 from public.site_management_admins a where a.user_id=auth.uid()) then
-    return NEW;
-  end if;
+  v_role:=coalesce(auth.role(),current_setting('request.jwt.claim.role',true),'');
+  if (auth.uid() is not null and exists(select 1 from public.site_management_admins a where a.user_id=auth.uid()))
+     or (v_role='service_role' and exists(
+       select 1 from public.organizations o join public.site_management_admins a on a.user_id=o.owner_id where o.id=NEW.organization_id
+     )) then return NEW; end if;
   if TG_OP='UPDATE' and NEW.organization_id=OLD.organization_id and NEW.site_id=OLD.site_id then return NEW; end if;
   select p.max_products into v_max_products
   from public.organizations o join public.saas_plans p on p.plan_code=o.subscription_plan where o.id=NEW.organization_id;
