@@ -137,3 +137,12 @@
 .logistics-partner-card>span:last-child{font-size:10px;font-weight:850;color:#21613b;margin-top:auto}
 .partner-pill{padding:5px 8px;border-radius:99px;background:#edf5e9;color:#497249;font-size:8px;font-weight:900;letter-spacing:.03em}
 @media(max-width:720px){.logistics-partner-grid{grid-template-columns:minmax(0,1fr)}.logistics-partner-card{min-height:0}}
+
+.price-history-details{min-width:150px;margin-bottom:7px}
+.price-history-details>summary{cursor:pointer;padding:8px 9px;border:1px solid #dce8dd;border-radius:8px;background:#f7faf6;color:#2d6440;font-size:9px;font-weight:850;white-space:nowrap}
+.price-history-list{display:grid;gap:8px;min-width:235px;max-width:320px;padding:10px;margin-top:6px;border:1px solid #e1e9e0;border-radius:9px;background:#fbfdfb}
+.price-history-item{display:grid;gap:4px;padding-bottom:8px;border-bottom:1px solid #e9f0e8}
+.price-history-item:last-child{padding-bottom:0;border-bottom:0}
+.price-history-item strong{color:#315b3c;font-size:10px;line-height:1.5}
+.price-history-item small{color:#738276;font-size:9px;line-height:1.5}
+.order-contact-link{display:inline-flex;align-items:center;justify-content:center;min-height:29px;margin-top:8px;padding:6px 9px;font-size:9px;white-space:nowrap}
