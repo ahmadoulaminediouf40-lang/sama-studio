@@ -30,11 +30,11 @@ assert.ok(publishFn.includes("renderSitePage")&&publishFn.includes("site_pages")
 assert.ok(publishFn.includes("addHtmlAsset(String(page.slug) + \"/index.html\"")&&publishFn.includes("seo_description")&&publishFn.includes("aria-label=\"Navigation"),"Missing page routes, SEO metadata, or page navigation");
 assert.ok(orderFn.includes("create_storefront_order")&&orderFn.includes("SUPABASE_SERVICE_ROLE_KEY")&&orderFn.includes("SUPABASE_SECRET_KEYS"),"Missing central order API or modern Supabase secret-key support");
 assert.ok(orderFn.includes("site_management_admins")&&orderFn.includes("owner_id")&&orderFn.includes("Cette boutique n’appartient pas au catalogue SAMA"),"Public order API must reject stores not owned by SAMA.");
-assert.ok(dashboardSource.includes("if(!state.isSamaAdmin)")&&!dashboardSource.includes("state.supabase.auth.signUp")&&dashboardSource.includes("Création d’organisations est désactivée"),"The admin must not expose public signup or customer organization creation.");
-assert.ok(publishSource.includes("Cette boutique n’appartient pas à l’espace propriétaire SAMA"),"Publishing must reject stores not owned by the SAMA organization.");
 const publishSource=readFileSync(join(root,"../supabase/functions/publish-site/index.ts"),"utf8");
 assert.ok(publishSource.includes("SAMA platform owner")&&publishSource.includes("site_management_admins")&&publishSource.includes("owner_id")&&publishSource.includes("trial_ends_at"),"Publication must be restricted to the SAMA owner and keep subscription checks.");
 const dashboardSource=readFileSync(join(root,"sama-dashboard.js"),"utf8");
+assert.ok(dashboardSource.includes("if(!state.isSamaAdmin)")&&!dashboardSource.includes("state.supabase.auth.signUp")&&dashboardSource.includes("création d’organisations est désactivée"),"The admin must not expose public signup or customer organization creation.");
+assert.ok(publishSource.includes("Cette boutique n’appartient pas à l’espace propriétaire SAMA"),"Publishing must reject stores not owned by the SAMA organization.");
 assert.ok(dashboardSource.includes("Publier la boutique")&&dashboardSource.includes('neq("status","published")'),"Missing owner storefront publishing UI or published-store review queue exclusion.");
 assert.ok(dashboardSource.includes("function createMyBoutiques")&&dashboardSource.includes("SAMA Market")&&dashboardSource.includes("SAMA Immo"),"Missing first-party setup for the ten SAMA storefronts.");
 assert.ok(dashboardSource.includes("ownedStores<firstPartySlugs.length")&&dashboardSource.includes("await createMyBoutiques()"),"The owner workspace should automatically prepare missing first-party storefronts.");
