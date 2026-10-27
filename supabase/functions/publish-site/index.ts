@@ -258,10 +258,28 @@ Deno.serve(async (req: Request) => {
       return reply(422, { error: error instanceof Error ? error.message : "Configuration du site invalide." });
     }
     const { data: rows, error: productsError } = await userDb.from("products")
-      .select("id,external_ref,sku,name,category,description,image_url,price,price_label,currency,stock_quantity,is_active,is_demo")
+      .select("id,external_ref,sku,name,category,description,image_url,price,price_label,currency,stock_quantity,is_active,is_demo,source_store_name,source_url,source_price,source_currency,source_exchange_rate,source_shipping_xof,other_costs_xof,margin_percent,source_checked_at,fulfillment_mode")
       .eq("site_id", site.id).eq("is_active", true).eq("is_demo", false).order("created_at", { ascending: true });
     if (productsError) return reply(500, { error: "Impossible de lire l’inventaire du site." });
     if (!rows?.length) return reply(422, { error: "Ajoute au moins un produit actif et vérifié dans l’inventaire avant publication." });
+    const now = Date.now();
+    const staleProducts = rows.filter((product: Record<string, any>) => {
+      const checkedAt = product.source_checked_at ? new Date(product.source_checked_at).getTime() : 0;
+      const sourceCost = Number(product.source_price || 0) * Number(product.source_exchange_rate || 1)
+        + Number(product.source_shipping_xof || 0) + Number(product.other_costs_xof || 0);
+      return !/^https?:\/\//i.test(String(product.source_url || ""))
+        || !product.source_store_name
+        || !(Number(product.source_price) > 0)
+        || !Number.isFinite(checkedAt) || checkedAt <= 0 || checkedAt < now - 7 * 24 * 60 * 60 * 1000
+        || !(Number(product.price) >= sourceCost)
+        || !(Number(product.margin_percent) >= 0);
+    });
+    if (staleProducts.length) {
+      return reply(422, {
+        error: "Publication bloquée : vérifie le lien, le prix fournisseur et la marge de chaque produit actif. Les prix sources doivent avoir été vérifiés au cours des 7 derniers jours et le prix de vente doit couvrir les coûts enregistrés.",
+        products: staleProducts.slice(0, 20).map((product: Record<string, any>) => ({ id: product.id, name: product.name, source_checked_at: product.source_checked_at }))
+      });
+    }
 
     const data = parsed.data as Record<string, any>;
     if (!data.business || typeof data.business !== "object") return reply(422, { error: "Informations de l’entreprise absentes du fichier." });
@@ -275,7 +293,9 @@ Deno.serve(async (req: Request) => {
       currency: product.currency || "XOF",
       description: product.description || "",
       image: product.image_url || "",
-      stock_quantity: Number(product.stock_quantity || 0)
+      stock_quantity: ["on_demand", "supplier_direct"].includes(String(product.fulfillment_mode || "on_demand"))
+        ? 99 : Number(product.stock_quantity || 0),
+      fulfillment_mode: product.fulfillment_mode || "on_demand"
     }));
     const dataStart = html.indexOf(parsed.marker) + parsed.marker.length;
     const dataEnd = html.indexOf(";(", dataStart);
