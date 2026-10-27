@@ -64,7 +64,7 @@ async function showWorkspace(){
   $("#settingsRole").textContent=({owner:"Propriétaire",admin:"Administrateur",staff:"Équipe",viewer:"Lecture seule"})[state.role]||state.role;
   $("#settingsUserEmail").textContent=state.user.email||"—";
   await reloadData();
-  const firstPartySlugs=["sama-market","sama-mode","sama-beaute","sama-tech","sama-maison","sama-epicerie","sama-food","sama-delices","sama-auto-moto","sama-sport-loisirs"];
+  const firstPartySlugs=["sama-market","sama-mode","sama-beaute","sama-tech","sama-maison","sama-epicerie","sama-bebe-famille","sama-papeterie-bureau","sama-auto-moto","sama-sport-loisirs"];
   const ownedStores=state.sites.filter(site=>firstPartySlugs.includes(site.slug)).length;
   if(state.isSamaAdmin&&state.organization?.owner_id===state.user?.id&&state.role==="owner"&&ownedStores<firstPartySlugs.length){
     await createMyBoutiques();
@@ -538,7 +538,7 @@ async function createMyBoutiques(){
  const config=[
   ["distribution","SAMA Market","sama-market"],["fashion","SAMA Mode","sama-mode"],["beauty","SAMA Beauté","sama-beaute"],
   ["electronics","SAMA Tech","sama-tech"],["home","SAMA Maison","sama-maison"],["grocery","SAMA Épicerie","sama-epicerie"],
-  ["restaurant","SAMA Food","sama-food"],["bakery","SAMA Délices","sama-delices"],["services","SAMA Auto & Moto","sama-auto-moto"],
+  ["restaurant","SAMA Bébé & Famille","sama-bebe-famille"],["bakery","SAMA Papeterie & Bureau","sama-papeterie-bureau"],["services","SAMA Auto & Moto","sama-auto-moto"],
   ["realestate","SAMA Sport & Loisirs","sama-sport-loisirs"]
  ];
  const button=$("#prepareBoutiquesBtn"),label=$("#prepareBoutiquesStatus");
